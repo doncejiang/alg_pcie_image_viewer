@@ -20,6 +20,7 @@
 #include <QTimer>
 #include <dma_utils.h>
 #include <QFile>
+#include <alg_cvtColor.h>
 
 pcie_transfer_t trans;
 
@@ -213,44 +214,7 @@ void Sensore_viewer::slot_on_sub_ch_image()
 
     image_capture_timer_->start(30);
 }*/
-#define LIMIT(x, MAX) (x)> (MAX) ? (MAX) : (x)
-void yuv422_2_rgb(uint8_t *in, uint8_t* out, int w, int h)
-{
-    //2 pixel on handle
-    int pixel;
-    for (int i = 0; i < w * h/ 2; ++i) {
-        auto y1 = in[i * 4];
-        auto u  = in[i * 4 + 1];
-        auto y2 = in[i * 4 + 2];
-        auto v  = in[i * 4 + 3];
 
-        pixel = i * 2 * 3;
-        uint8_t& r1 = out[pixel + 0];
-        uint8_t& b1 = out[pixel + 1];
-        uint8_t& g1 = out[pixel + 2];
-
-        pixel = 3 * ((i * 2) + 1);
-        uint8_t& r2 = out[pixel + 0];
-        uint8_t& b2 = out[pixel + 1];
-        uint8_t& g2 = out[pixel + 2];
-
-        r1 = (uint16_t)(1.164*(y1-16) + 1.596*(v-128));LIMIT(r1, 255);
-        g1 = (uint16_t)(1.164*(y1-16) - 0.813*(v-128) - 0.392*(u-128));LIMIT(g1, 255);
-        b1 = (uint16_t)(1.164*(y1-16) + 2.017*(u-128));LIMIT(b1, 255);
-
-        r2 = (uint16_t)(1.164*(y2-16) + 1.596*(v-128));LIMIT(r2, 255);
-        g2 = (uint16_t)(1.164*(y2-16) - 0.813*(v-128) - 0.392*(u-128));LIMIT(g2, 255);
-        b2 = (uint16_t)(1.164*(y2-16) + 2.017*(u-128));LIMIT(b2, 255);
-
-        /*r1 = LIMIT(y1 + 1.402 * (u -128), 255);
-        g1 = LIMIT(y1 - 0.344 * (u - 128) - 0.714 * (v -128), 255);
-        b1 = LIMIT(y1 + 1.772 * (v -128), 255);
-
-        r2 = LIMIT(y2 + 1.402 * (u -128), 255);
-        g2 = LIMIT(y2 - 0.344 * (u - 128) - 0.714 * (v -128), 255);
-        b2 = LIMIT(y2 + 1.772 * (v -128), 255);*/
-    }
-}
 
 
 int Sensore_viewer::read_buffer2image(uchar* image, int size, uint offset)
@@ -291,14 +255,9 @@ int Sensore_viewer::read_buffer2image(uchar* image, int size, uint offset)
              << "秒 Badnwidth " << size / 1024 / 1024 / (double(duration.count()) * microseconds::period::num / microseconds::period::den) << "MB/s" << endl;
     }
 
-    static int i_index = 0;
-    /*for (int i = 0; i < size / 2; ++i) {
-        image[i] =trans.write_buffer[2 * i];
-    }*/
-
     //save_file("019_raw" +QString::number(++i_index) + ".raw", trans.write_buffer, 1280*960*2);
-
-    yuv422_2_rgb((uchar*)trans.write_buffer, image, w, h);
+    alg_cv::cvtColor((uchar*)trans.write_buffer, image, w, h, alg_cv::YUV422_YUYV_2_RGB);
+    //yuv422_2_rgb((uchar*)trans.write_buffer, image, w, h);
     return  0;
 }
 
@@ -313,7 +272,7 @@ void Sensore_viewer::slot_on_sub_ch_image()
     if (!ret) {
        // yuv422_2_rgb(image_chache, image_chache_rgb, w, h);
         QImage image(reinterpret_cast<uchar *>(image_chache_rgb), w, h, QImage::Format::Format_RGB888);
-        image_label_[0]->resize(w, h);
+        image = image.scaled(640, 480);
         image_label_[0]->setPixmap(QPixmap::fromImage(image));
     }
 
@@ -321,7 +280,7 @@ void Sensore_viewer::slot_on_sub_ch_image()
     if (!ret) {
         //yuv422_2_rgb(image_chache2, image_chache2_rgb, w, h);
         QImage image2(reinterpret_cast<uchar *>(image_chache2_rgb), w, h, QImage::Format::Format_RGB888);
-        image_label_[1]->resize(w, h);
+        image2 = image2.scaled(640, 480);
         image_label_[1]->setPixmap(QPixmap::fromImage(image2));
     }
 
@@ -331,7 +290,7 @@ void Sensore_viewer::slot_on_sub_ch_image()
     if (!ret) {
        // yuv422_2_rgb(image_chache, image_chache_rgb, w, h);
         QImage image(reinterpret_cast<uchar *>(image_chache_rgb), w, h, QImage::Format::Format_RGB888);
-        image_label_[2]->resize(w, h);
+        image = image.scaled(640, 480);
         image_label_[2]->setPixmap(QPixmap::fromImage(image));
     }
 
@@ -339,7 +298,7 @@ void Sensore_viewer::slot_on_sub_ch_image()
     if (!ret) {
         //yuv422_2_rgb(image_chache2, image_chache2_rgb, w, h);
         QImage image2(reinterpret_cast<uchar *>(image_chache2_rgb), w, h, QImage::Format::Format_RGB888);
-        image_label_[3]->resize(w, h);
+        image2 = image2.scaled(640, 480);
         image_label_[3]->setPixmap(QPixmap::fromImage(image2));
     }
 

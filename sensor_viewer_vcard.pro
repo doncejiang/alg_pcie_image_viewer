@@ -19,12 +19,16 @@ SOURCES += \
     ./source/process/image_capture_process.cpp \
     main.cpp \
     sensore_viewer.cpp \
-    source/pcie/dma_utils.c
+    source/algroithm/alg_cvtColor.cpp \
+    source/pcie/dma_utils.c \
+    source/process/obj_save_process.cpp
 
 HEADERS += \
     ./source/process/image_capture_process.h \
     sensore_viewer.h \
-    source/pcie/dma_utils.h
+    source/algroithm/alg_cvtColor.h \
+    source/pcie/dma_utils.h \
+    source/process/obj_save_process.h
 
 FORMS += \
     sensore_viewer.ui
@@ -34,7 +38,8 @@ TRANSLATIONS += \
 
 INCLUDEPATH += \
     ./source/process/ \
-    ./source/pcie/
+    ./source/pcie/ \
+    ./source/algroithm
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -19,6 +19,7 @@
 #include <QImage>
 #include <QTimer>
 #include <dma_utils.h>
+#include <QFile>
 
 pcie_transfer_t trans;
 
@@ -30,11 +31,23 @@ Sensore_viewer::Sensore_viewer(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::Sensore_viewer)
 {
-    ui_layout_ = new QGridLayout{};
-    image_label_ = new QLabel{"PCIe Image Label"};
+        ui->setupUi(this);
 
-    this->layout()->addWidget(image_label_);
-    setLayout(ui_layout_);
+    ui_layout_ = new QGridLayout{};
+    for (int i = 0; i < 8; ++i) {
+        image_label_[i] = new QLabel{"PCIe Image Label"};
+    }
+
+    QWidget* w = new QWidget;
+
+
+
+    ui_layout_->addWidget(image_label_[0], 0, 0, 1, 1);
+    ui_layout_->addWidget(image_label_[1], 0, 1, 1, 1);
+    ui_layout_->addWidget(image_label_[2], 1, 0, 1, 1);
+    ui_layout_->addWidget(image_label_[3], 1, 1, 1, 1);
+
+    w->setLayout(ui_layout_);
 
     char *h2c_device = H2C_DEVICE;
     char *c2h_device = C2H_DEVICE;
@@ -44,6 +57,7 @@ Sensore_viewer::Sensore_viewer(QWidget *parent)
         fprintf(stderr, "unable to open device %s, %d.\n",
             h2c_device, trans.h2c_fd);
         perror("open device");
+        return;
     }
 
     trans.c2h_fd = open(c2h_device, O_RDWR);
@@ -51,6 +65,7 @@ Sensore_viewer::Sensore_viewer(QWidget *parent)
         fprintf(stderr, "unable to open device %s, %d.\n",
             c2h_device, trans.c2h_fd);
         perror("open device");
+        return;
     }
 
 
@@ -77,18 +92,25 @@ Sensore_viewer::Sensore_viewer(QWidget *parent)
     //image_capture_process_->moveToThread(image_capture_thread_);
 
     image_capture_timer_ = new QTimer;
-    image_capture_timer_->setInterval(30);
+    image_capture_timer_->setInterval(50);
     connect(image_capture_timer_, &QTimer::timeout, this, &Sensore_viewer::slot_on_sub_ch_image);
     image_capture_timer_->setSingleShot(true);
-    image_capture_timer_->start(30);
+    image_capture_timer_->start(10);
 
     //connect()
 
     //image_capture_thread_->start();
 
-    ui->setupUi(this);
+
+
+    setCentralWidget(w);
 }
 
+uchar image_chache[1280 * 960 * 3];
+uchar image_chache2[1280 * 960 * 3];
+
+uchar image_chache_rgb[1280 * 960 * 4];
+uchar image_chache2_rgb[1280 * 960 * 4];
 Sensore_viewer::~Sensore_viewer()
 {
     image_capture_timer_->stop();
@@ -119,11 +141,25 @@ Sensore_viewer::~Sensore_viewer()
 using namespace std;
 using namespace chrono;
 
+void save_file(QString path, char* buff, int size)
+{
+    QFile file_(path);
+
+    if (!file_.open(QIODevice::WriteOnly)) {
+        return;
+    }
+
+    file_.write(buff, size);
+
+    file_.close();
+}
+
 
 // do something...
 
 
-
+//origin
+/*
 void Sensore_viewer::slot_on_sub_ch_image()
 {
     int rc, i;
@@ -132,10 +168,10 @@ void Sensore_viewer::slot_on_sub_ch_image()
     volatile unsigned int *transfer_done;
     int var = 0;
     char *write_allocated = trans.write_buffer;
-    addr = 0x1869B0;//0x13780;
-    int w = 800;
-    int h = 600;
-    size = w*h*3;
+    addr = 0x859a14;//0x1869B0;//0x13780;
+    int w = 1280;
+    int h = 720;
+    size = w*h*1.25;
 
     static int index = 0;
     if (0)
@@ -151,6 +187,8 @@ void Sensore_viewer::slot_on_sub_ch_image()
             //printf("rc %d addr %x data [0-3] %d %d %d %d\r\n",  rc, addr, write_allocated[0], write_allocated[1], write_allocated[2], write_allocated[3]);
         }
     }
+
+
     if (++index % 30 == 0) {
         auto end   = system_clock::now();
         auto duration = duration_cast<microseconds>(end - start);
@@ -159,10 +197,153 @@ void Sensore_viewer::slot_on_sub_ch_image()
              << "秒 Badnwidth " << size / 1024 / 1024 / (double(duration.count()) * microseconds::period::num / microseconds::period::den) << "MB/s" << endl;
     }
 
-    QImage image(reinterpret_cast<uchar *>(trans.write_buffer), w, h, QImage::Format::Format_BGR888);
+    int i_index = 0;
+    for (int i = 0; i < 1280 * 720 * 1.25; i+=5, i_index+=4) {
+        image_chache[i_index + 0] = trans.write_buffer[i];
+        image_chache[i_index + 1] = trans.write_buffer[i + 1];
+        image_chache[i_index + 2] = trans.write_buffer[i + 2];
+        image_chache[i_index + 3] = trans.write_buffer[i + 3];
+    }
+
+    QImage image(reinterpret_cast<uchar *>(image_chache), w, h, QImage::Format::Format_Grayscale8);
+
+    image_label_->resize(w, h);
 
     image_label_->setPixmap(QPixmap::fromImage(image));
 
     image_capture_timer_->start(30);
+}*/
+#define LIMIT(x, MAX) (x)> (MAX) ? (MAX) : (x)
+void yuv422_2_rgb(uint8_t *in, uint8_t* out, int w, int h)
+{
+    //2 pixel on handle
+    int pixel;
+    for (int i = 0; i < w * h/ 2; ++i) {
+        auto y1 = in[i * 4];
+        auto u  = in[i * 4 + 1];
+        auto y2 = in[i * 4 + 2];
+        auto v  = in[i * 4 + 3];
+
+        pixel = i * 2 * 3;
+        uint8_t& r1 = out[pixel + 0];
+        uint8_t& b1 = out[pixel + 1];
+        uint8_t& g1 = out[pixel + 2];
+
+        pixel = 3 * ((i * 2) + 1);
+        uint8_t& r2 = out[pixel + 0];
+        uint8_t& b2 = out[pixel + 1];
+        uint8_t& g2 = out[pixel + 2];
+
+        r1 = (uint16_t)(1.164*(y1-16) + 1.596*(v-128));LIMIT(r1, 255);
+        g1 = (uint16_t)(1.164*(y1-16) - 0.813*(v-128) - 0.392*(u-128));LIMIT(g1, 255);
+        b1 = (uint16_t)(1.164*(y1-16) + 2.017*(u-128));LIMIT(b1, 255);
+
+        r2 = (uint16_t)(1.164*(y2-16) + 1.596*(v-128));LIMIT(r2, 255);
+        g2 = (uint16_t)(1.164*(y2-16) - 0.813*(v-128) - 0.392*(u-128));LIMIT(g2, 255);
+        b2 = (uint16_t)(1.164*(y2-16) + 2.017*(u-128));LIMIT(b2, 255);
+
+        /*r1 = LIMIT(y1 + 1.402 * (u -128), 255);
+        g1 = LIMIT(y1 - 0.344 * (u - 128) - 0.714 * (v -128), 255);
+        b1 = LIMIT(y1 + 1.772 * (v -128), 255);
+
+        r2 = LIMIT(y2 + 1.402 * (u -128), 255);
+        g2 = LIMIT(y2 - 0.344 * (u - 128) - 0.714 * (v -128), 255);
+        b2 = LIMIT(y2 + 1.772 * (v -128), 255);*/
+    }
 }
+
+
+int Sensore_viewer::read_buffer2image(uchar* image, int size, uint offset)
+{
+    int rc, i;
+    int count = COUNT_DEFAULT;
+    volatile unsigned int addr;
+    volatile unsigned int *transfer_done;
+    int var = 0;
+    char *write_allocated = trans.write_buffer;
+    addr = offset;//0xFAEC00;//0x1869B0;//0x13780;
+    int w = 1280;
+    int h = 960;
+    size = w * h * 2;
+
+    static int index = 0;
+    if (0)
+        fprintf(stdout, "host buffer 0x%x = %p\n",
+            size + 4096, trans.write_buffer);
+
+    auto start = system_clock::now();
+    if (trans.c2h_fd) {
+        rc = read_to_buffer(C2H_DEVICE, trans.c2h_fd, trans.write_buffer, size, addr);
+        if (rc < 0) {
+            printf("error index %d, read to buffer failed size %d rc %d\n", index, size, rc);
+            return -1;
+        } else {
+            //printf("rc %d addr %x data [0-3] %d %d %d %d\r\n",  rc, addr, write_allocated[0], write_allocated[1], write_allocated[2], write_allocated[3]);
+        }
+    }
+
+
+    if (++index % 30 == 0) {
+        auto end   = system_clock::now();
+        auto duration = duration_cast<microseconds>(end - start);
+        std::cout <<  "花费了"
+             << double(duration.count()) * microseconds::period::num / microseconds::period::den
+             << "秒 Badnwidth " << size / 1024 / 1024 / (double(duration.count()) * microseconds::period::num / microseconds::period::den) << "MB/s" << endl;
+    }
+
+    static int i_index = 0;
+    /*for (int i = 0; i < size / 2; ++i) {
+        image[i] =trans.write_buffer[2 * i];
+    }*/
+
+    //save_file("019_raw" +QString::number(++i_index) + ".raw", trans.write_buffer, 1280*960*2);
+
+    yuv422_2_rgb((uchar*)trans.write_buffer, image, w, h);
+    return  0;
+}
+
+
+void Sensore_viewer::slot_on_sub_ch_image()
+{
+    int w = 1280, h = 960;
+    int size = 1280 * 960 * 2;
+
+    int ret = read_buffer2image(image_chache_rgb, size, 0x19cf00);
+
+    if (!ret) {
+       // yuv422_2_rgb(image_chache, image_chache_rgb, w, h);
+        QImage image(reinterpret_cast<uchar *>(image_chache_rgb), w, h, QImage::Format::Format_RGB888);
+        image_label_[0]->resize(w, h);
+        image_label_[0]->setPixmap(QPixmap::fromImage(image));
+    }
+
+     ret = read_buffer2image(image_chache2_rgb, size, 0xFAFC00);
+    if (!ret) {
+        //yuv422_2_rgb(image_chache2, image_chache2_rgb, w, h);
+        QImage image2(reinterpret_cast<uchar *>(image_chache2_rgb), w, h, QImage::Format::Format_RGB888);
+        image_label_[1]->resize(w, h);
+        image_label_[1]->setPixmap(QPixmap::fromImage(image2));
+    }
+
+
+    ret = read_buffer2image(image_chache_rgb, size, 0xfafc00);
+
+    if (!ret) {
+       // yuv422_2_rgb(image_chache, image_chache_rgb, w, h);
+        QImage image(reinterpret_cast<uchar *>(image_chache_rgb), w, h, QImage::Format::Format_RGB888);
+        image_label_[2]->resize(w, h);
+        image_label_[2]->setPixmap(QPixmap::fromImage(image));
+    }
+
+    ret = read_buffer2image(image_chache2_rgb, size, 0x2bd5600);
+    if (!ret) {
+        //yuv422_2_rgb(image_chache2, image_chache2_rgb, w, h);
+        QImage image2(reinterpret_cast<uchar *>(image_chache2_rgb), w, h, QImage::Format::Format_RGB888);
+        image_label_[3]->resize(w, h);
+        image_label_[3]->setPixmap(QPixmap::fromImage(image2));
+    }
+
+    image_capture_timer_->start(30);
+}
+
 

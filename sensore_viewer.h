@@ -34,10 +34,11 @@ class Sensore_viewer : public QMainWindow
 public:
     Sensore_viewer(QWidget *parent = nullptr);
     ~Sensore_viewer();
+    int read_buffer2image(uchar* image, int size, uint offset);
 
 private:
     Ui::Sensore_viewer *ui;
-    QLabel *image_label_{nullptr};
+    QLabel *image_label_[8] = {nullptr};
     QGridLayout* ui_layout_{nullptr};
     QThread* image_capture_thread_{nullptr};
     image_capture_process* image_capture_process_{nullptr};

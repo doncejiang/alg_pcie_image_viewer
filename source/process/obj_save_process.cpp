@@ -16,6 +16,21 @@ int readFile(QString path, int size, uchar* buffer)
     return len;
 }
 
+static
+void save_file(QString path, char* buff, int size)
+{
+    QFile file_(path);
+
+    if (!file_.open(QIODevice::WriteOnly)) {
+        return;
+    }
+
+    file_.write(buff, size);
+
+    file_.close();
+}
+
+
 object_save_process::object_save_process(QObject *parent) : QObject(parent)
 {
 

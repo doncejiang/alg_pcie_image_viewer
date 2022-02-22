@@ -35,6 +35,7 @@ public:
     Sensore_viewer(QWidget *parent = nullptr);
     ~Sensore_viewer();
     int read_buffer2image(uchar* image, int size, uint offset);
+    int start_init_camera();
 
 private:
     Ui::Sensore_viewer *ui;

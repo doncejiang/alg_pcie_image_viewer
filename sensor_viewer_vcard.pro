@@ -21,6 +21,7 @@ SOURCES += \
     sensore_viewer.cpp \
     source/algroithm/alg_cvtColor.cpp \
     source/pcie/dma_utils.c \
+    source/pcie/pcie_protocol.cpp \
     source/process/obj_save_process.cpp
 
 HEADERS += \
@@ -28,6 +29,7 @@ HEADERS += \
     sensore_viewer.h \
     source/algroithm/alg_cvtColor.h \
     source/pcie/dma_utils.h \
+    source/pcie/pcie_protocol.h \
     source/process/obj_save_process.h
 
 FORMS += \

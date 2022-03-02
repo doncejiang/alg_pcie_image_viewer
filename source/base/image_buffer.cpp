@@ -1,8 +1,8 @@
 #include "image_buffer.h"
-#include <QDebug>
+#include "string.h"
 
 
-ring_buffer::ring_buffer(int item_size, int buffer_depth, item_init init, item_deinit deinit, QObject *parent)
+ring_buffer::ring_buffer(int item_size, int buffer_depth, item_init init, item_deinit deinit)
 {
      meta_data_ = new char[item_size * buffer_depth];
      if (init) {
@@ -44,7 +44,6 @@ error_status_t ring_buffer::enque(void** data)
 {
     std::lock_guard<std::mutex> lck(mutex_);
     if (is_full() || !data) {
-        qDebug("ring buffer full");
         return  STATUS_ERROR;
     }
     *data = (void *)((char *)meta_data_ + (write_index_ * item_size_));
@@ -108,7 +107,7 @@ bool image_meta_data_deinit(void* item_ptr)
 
 static image_buffer*  s_image_buffer_ptr = nullptr;
 
-image_buffer::image_buffer(int ch_num, QObject *parent) : QObject(parent)
+image_buffer::image_buffer(int ch_num)
 {
     ch_num_ = ch_num;
     for (int i = 0; i < ch_num; ++i) {

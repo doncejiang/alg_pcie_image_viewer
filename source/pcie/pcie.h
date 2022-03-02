@@ -3,7 +3,7 @@
 
 #include "stdint.h"
 #include "dma_utils.h"
-#include "pcie_protocol.h"
+#include "pcie_reg_driver.h"
 
 #define VDMA_NUM 8
 #define VDMA_RING_FRM_NUM 7
@@ -12,8 +12,13 @@ class pcie_dev {
 public:
     pcie_dev(int dev_id = 0);
     ~pcie_dev();
-    int    open_dev();
-    int    close_dev();
+    int open_dev();
+    int close_dev();
+    int stream_on(void* cfg, uint8_t channel);
+    int stream_off(uint8_t channel);
+    int deque_image(char* image, uint32_t size, uint8_t channel);
+    int get_decode_info(char* buffer, size_t size);
+private:
     size_t read(char* buffer, size_t size, size_t off);
     size_t write(char* buffer, size_t size, size_t off);
 private:

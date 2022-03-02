@@ -1,7 +1,6 @@
 #ifndef IMAGE_BUFFER_H
 #define IMAGE_BUFFER_H
 
-#include <QObject>
 #include <app_config.h>
 #include <mutex>
 
@@ -35,11 +34,10 @@ typedef struct {
 typedef bool (*item_init)(void* item_ptr);
 typedef bool (*item_deinit)(void* item_ptr);
 
-class ring_buffer : public QObject
+class ring_buffer
 {
-    Q_OBJECT
 public:
-    explicit ring_buffer(int item_size, int buffer_depth, item_init init, item_deinit deinit, QObject *parent = nullptr);
+    explicit ring_buffer(int item_size, int buffer_depth, item_init init, item_deinit deinit);
     ~ring_buffer();
     error_status_t deque(void** data);
     error_status_t enque(void** data);
@@ -62,11 +60,8 @@ private:
 };
 
 //TODO:add multi thread support
-class image_buffer : public QObject
+class image_buffer
 {
-    Q_OBJECT
-
-
 public:
     ~image_buffer();
     static image_buffer*  get_instance(int ch_num = MAX_DEV_CH_NUM);
@@ -74,12 +69,9 @@ public:
     error_status_t deque(image_meta_data_t** image_data, int ch_id);
     error_status_t enque(image_meta_data_t** image_data, int ch_id);
 private:
-    explicit image_buffer(int ch_num = MAX_DEV_CH_NUM, QObject *parent = nullptr);
+    explicit image_buffer(int ch_num = MAX_DEV_CH_NUM);
     ring_buffer*   image_buffer_queue_[MAX_DEV_CH_NUM] = {nullptr};
     int  ch_num_ = 0;
-
-signals:
-
 };
 
 #endif // IMAGE_BUFFER_H

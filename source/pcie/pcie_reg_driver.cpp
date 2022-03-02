@@ -1,4 +1,4 @@
-#include <pcie_protocol.h>
+#include <pcie_reg_driver.h>
 
 
 int pcie_reg_get_frm_ptr(uint32_t *base, uint8_t dev_id)

@@ -6,6 +6,7 @@
 #include <QLabel>
 #include "dma_utils.h"
 #include "image_capture_process.h"
+#include "pcie.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class Sensore_viewer; }
@@ -47,6 +48,7 @@ private:
     image_capture_process* image_capture_process_{nullptr};
     uint64_t addr_table[4][7];
     QTimer* image_capture_timer_{nullptr};
+    pcie_dev* pcie_dev_;
 
 private slots:
     void slot_on_sub_ch_image();

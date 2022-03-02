@@ -1,4 +1,4 @@
-#include "sensore_viewer.h"
+#include "sensor_viewer.h"
 
 #include <QApplication>
 #include <QFile>

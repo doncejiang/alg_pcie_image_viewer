@@ -24,7 +24,7 @@ SOURCES += \
     source/base/image_buffer.cpp \
     source/pcie/dma_utils.c \
     source/pcie/pcie.cpp \
-    source/pcie/pcie_protocol.cpp \
+    source/pcie/pcie_reg_driver.cpp \
     source/process/obj_save_process.cpp
 
 HEADERS += \
@@ -36,7 +36,7 @@ HEADERS += \
     source/base/image_buffer.h \
     source/pcie/dma_utils.h \
     source/pcie/pcie.h \
-    source/pcie/pcie_protocol.h \
+    source/pcie/pcie_reg_driver.h \
     source/process/obj_save_process.h
 
 FORMS += \

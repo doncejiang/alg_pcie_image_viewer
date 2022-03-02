@@ -18,28 +18,29 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     ./source/process/image_capture_process.cpp \
     main.cpp \
-    sensore_viewer.cpp \
+    sensor_viewer.cpp \
     source/algroithm/alg_cvtColor.cpp \
     source/base/app_cfg.cpp \
     source/base/image_buffer.cpp \
     source/pcie/dma_utils.c \
+    source/pcie/pcie.cpp \
     source/pcie/pcie_protocol.cpp \
     source/process/obj_save_process.cpp
 
 HEADERS += \
     ./source/process/image_capture_process.h \
-    sensore_viewer.h \
+    sensor_viewer.h \
     source/algroithm/alg_cvtColor.h \
     source/base/app_cfg.h \
     source/base/app_config.h \
     source/base/image_buffer.h \
     source/pcie/dma_utils.h \
+    source/pcie/pcie.h \
     source/pcie/pcie_protocol.h \
-    source/pcie/protocol_mem_cfg.h \
     source/process/obj_save_process.h
 
 FORMS += \
-    sensore_viewer.ui
+    sensor_viewer.ui
 
 TRANSLATIONS += \
     sensor_viewer_vcard_zh_CN.ts

@@ -23,7 +23,7 @@
 #include <alg_cvtColor.h>
 #include <chrono>
 #include <iostream>
-#include "pcie_protocol.h"
+#include "pcie.h"
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/time.h>

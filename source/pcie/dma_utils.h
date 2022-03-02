@@ -19,6 +19,7 @@ typedef struct  {
     char *write_buffer;
     char *infname;
     char *ofname;
+    uint32_t* map_base_reg;
 } pcie_transfer_t;
 
 extern ssize_t read_to_buffer(char *fname, int fd, char *buffer, uint64_t size,

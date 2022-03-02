@@ -67,7 +67,7 @@ ssize_t read_to_buffer(char *fname, int fd, char *buffer, uint64_t size_in,
 		/* read data from file into memory buffer */
 		rc = read(fd, buf, bytes);
 		if (rc != bytes) {
-			fprintf(stderr, "%s, R off 0x%lx, 0x%lx != 0x%lx.\n",
+            fprintf(stderr, "[RD]%s, R off 0x%lx, 0x%lx != 0x%lx.\n",
 				fname, count, rc, bytes);
 				perror("read file");
 			return -EIO;
@@ -79,7 +79,7 @@ ssize_t read_to_buffer(char *fname, int fd, char *buffer, uint64_t size_in,
 	}	 
 
 	if (count != size) {
-		fprintf(stderr, "%s, R failed 0x%lx != 0x%lx.\n",
+        fprintf(stderr, "[FINAL]%s, R failed 0x%lx != 0x%lx.\n",
 				fname, count, size);
 		return -EIO;
 	}

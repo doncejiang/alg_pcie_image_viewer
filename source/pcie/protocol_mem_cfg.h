@@ -1,0 +1,4 @@
+#ifndef PROTOCOL_MEM_CFG_H
+#define PROTOCOL_MEM_CFG_H
+
+#endif // PROTOCOL_MEM_CFG_H

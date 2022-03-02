@@ -36,18 +36,21 @@ public:
     ~Sensore_viewer();
     int read_buffer2image(uchar* image, int size, uint offset);
     int start_init_camera();
+    int get_ch_info();
 
 private:
+    QLabel* info_label_;
     Ui::Sensore_viewer *ui;
     QLabel *image_label_[8] = {nullptr};
     QGridLayout* ui_layout_{nullptr};
     QThread* image_capture_thread_{nullptr};
     image_capture_process* image_capture_process_{nullptr};
-
+    uint64_t addr_table[4][7];
     QTimer* image_capture_timer_{nullptr};
 
 private slots:
     void slot_on_sub_ch_image();
+
 
 };
 #endif // SENSORE_VIEWER_H

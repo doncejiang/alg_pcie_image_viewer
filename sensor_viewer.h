@@ -45,7 +45,7 @@ private:
     QGridLayout* ui_layout_{nullptr};
     QThread* image_capture_thread_[8]{nullptr};
     image_capture_proecess* image_capture_process_[8]{nullptr};
-    uint64_t addr_table[4][7];
+    //uint64_t addr_table[4][7];
     QTimer* image_capture_timer_{nullptr};
     pcie_dev* pcie_dev_{nullptr};
 

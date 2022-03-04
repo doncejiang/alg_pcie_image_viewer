@@ -43,7 +43,7 @@ void image_capture_proecess::slot_on_start_sensor_stream()
         //    QThread::msleep(25); // 25fps
         //}
 
-        QThread::msleep(5);
+        QThread::msleep(25);
         //pcie_dev_->wait_image_ready_event(ch_id_);
         if (pcie_dev_) {
             image_buffer::get_instance()->enque(&meta_data_, ch_id_);
@@ -57,7 +57,8 @@ void image_capture_proecess::slot_on_start_sensor_stream()
             alg_cv::ALG_cvtColor((uchar*)meta_data_->raw_data.data, (uchar*)meta_data_->rgb_data.data,
                              meta_data_->image_info.width, meta_data_->image_info.height, alg_cv::YUV422_YUYV_2_RGB);
             meta_data_->image_info.soft_frame_index = ++frame_index_;
-            if (ret >= 0) {
+            if (ret >= 0)
+            {
                 err_cnt_ = 0;
                 ++frame_cnt;
                 gettimeofday(&tv, NULL);
@@ -70,7 +71,8 @@ void image_capture_proecess::slot_on_start_sensor_stream()
             } else {
                 ++err_cnt_;
             }
-            if (err_cnt_ > 50) {
+            if (err_cnt_ > 500) {
+                 printf("ch %d quit beacase error\r\n", ch_id_);
                  break;
             }
         }

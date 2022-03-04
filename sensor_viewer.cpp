@@ -57,8 +57,12 @@ sensor_viewer::sensor_viewer(QWidget *parent)
     statusBar()->addWidget(info_label_);
     ui_layout_->addWidget(image_label_[0], 0, 0, 1, 1);
     ui_layout_->addWidget(image_label_[1], 0, 1, 1, 1);
-    ui_layout_->addWidget(image_label_[2], 1, 0, 1, 1);
-    ui_layout_->addWidget(image_label_[3], 1, 1, 1, 1);
+    ui_layout_->addWidget(image_label_[2], 0, 2, 1, 1);
+    ui_layout_->addWidget(image_label_[3], 0, 3, 1, 1);
+    ui_layout_->addWidget(image_label_[4], 1, 0, 1, 1);
+    ui_layout_->addWidget(image_label_[5], 1, 1, 1, 1);
+    ui_layout_->addWidget(image_label_[6], 1, 2, 1, 1);
+    ui_layout_->addWidget(image_label_[7], 1, 3, 1, 1);
 
     w->setLayout(ui_layout_);
 
@@ -74,7 +78,7 @@ sensor_viewer::sensor_viewer(QWidget *parent)
     image_chache = new char[INPUT_WIDTH_DEFAULT * INPUT_HEIGHT_DEFAULT * 2];
     image_chache_rgb = new char[INPUT_WIDTH_DEFAULT * INPUT_HEIGHT_DEFAULT * 3];
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 8; ++i) {
         image_capture_process_[i] = new image_capture_proecess(i);
         image_capture_thread_[i] = new QThread;
         image_capture_process_[i]->moveToThread(image_capture_thread_[i]);
@@ -101,7 +105,7 @@ extern bool g_stop_capture_sensor_stream;
     g_stop_capture_sensor_stream = true;
 
     QThread::msleep(10);
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 8; ++i) {
         if (image_capture_thread_[i]) {
             image_capture_thread_[i]->wait(1000);
              if (image_capture_thread_[i]->isRunning()) {
@@ -166,7 +170,7 @@ void sensor_viewer::slot_on_sub_ch_image()
 
 void sensor_viewer::slot_on_recv_ch_meta_data(void* meta_data, int ch_id)
 {
-    if (ch_id > 4 || !meta_data) return;
+    if (ch_id > 8 || !meta_data) return;
 
         image_meta_data_t* data;
         image_buffer::get_instance()->deque(&data, ch_id);

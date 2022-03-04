@@ -36,7 +36,7 @@ pcie_dev::pcie_dev(int dev_id)
     sprintf(h2c_dev_name_, H2C_DEVICE, dev_id);
     sprintf(reg_dev_name_, REG_DEVICE_NAME, dev_id);
     sprintf(event_dev_name_, USER_EVENT_DEVICE_NAME, dev_id);
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < VDMA_NUM; ++i) {
         sprintf(img_event_dev_name_[i], IMG_EVENT_DEVICE_NAME, dev_id, i);
     }
 
@@ -238,9 +238,9 @@ int pcie_dev::deque_image(char* image, uint32_t size, uint8_t channel)
 {
     if (channel > VDMA_NUM || !image) return -1;
     static int buff[8];
-
+    int grey_code = 0;
     static uint8_t s_frm7_grey2dec_lut[16] = {0xff, 0, 2, 1,  6, 5, 3, 4, 0xff, 6,  4, 5,  0,  1,  3,  2};
-    auto grey_code = get_frm_ptr(2 * channel);
+    grey_code = get_frm_ptr(channel);
     if (grey_code > 15) grey_code = 15;
     if (grey_code == buff[channel]) {
         return -1;

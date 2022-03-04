@@ -1,5 +1,5 @@
 #include "sensor_viewer.h"
-#include "ui_sensore_viewer.h"
+#include "ui_sensor_viewer.h"
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -28,19 +28,23 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include "image_buffer.h"
 #include <unistd.h>
 
 using namespace std;
 using namespace chrono;
 
 
-Sensore_viewer::Sensore_viewer(QWidget *parent)
+sensor_viewer::sensor_viewer(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::Sensore_viewer)
+    , ui(new Ui::sensor_viewer)
 {
         ui->setupUi(this);
 
     ui_layout_ = new QGridLayout{};
+
+    image_buffer::get_instance(8);
+
     for (int i = 0; i < 8; ++i) {
         image_label_[i] = new QLabel{"PCIe Image Label"};
     }
@@ -63,75 +67,69 @@ Sensore_viewer::Sensore_viewer(QWidget *parent)
 
     image_capture_timer_ = new QTimer;
     image_capture_timer_->setInterval(50);
-    connect(image_capture_timer_, &QTimer::timeout, this, &Sensore_viewer::slot_on_sub_ch_image);
+    connect(image_capture_timer_, &QTimer::timeout, this, &sensor_viewer::slot_on_sub_ch_image);
     image_capture_timer_->setSingleShot(true);
     image_capture_timer_->start(10);
 
-    //image_capture_thread_->start();
-    start_init_camera();
+    image_chache = new char[INPUT_WIDTH_DEFAULT * INPUT_HEIGHT_DEFAULT * 2];
+    image_chache_rgb = new char[INPUT_WIDTH_DEFAULT * INPUT_HEIGHT_DEFAULT * 3];
+
+    for (int i = 0; i < 4; ++i) {
+        image_capture_process_[i] = new image_capture_proecess(i);
+        image_capture_thread_[i] = new QThread;
+        image_capture_process_[i]->moveToThread(image_capture_thread_[i]);
+        image_capture_thread_[i]->start();
+
+        connect(this, &sensor_viewer::signal_on_start_sensor_stream, image_capture_process_[i], &image_capture_proecess::slot_on_start_sensor_stream);
+        connect(this, &sensor_viewer::signal_on_pub_dev_instance, image_capture_process_[i], &image_capture_proecess::slot_on_recv_pcie_dev_control_port);
+        connect(image_capture_process_[i], &image_capture_proecess::signal_on_publish_capture_image, this, &sensor_viewer::slot_on_recv_ch_meta_data);
+    }
+
+
+    //start_init_camera();
+    emit signal_on_pub_dev_instance(pcie_dev_);
+
+    QThread::msleep(500);
+
+    emit signal_on_start_sensor_stream();
     setCentralWidget(w);
 }
 
-char image_chache[1280 * 960 * 3];
-char image_chache2[1280 * 960 * 3];
-char image_chache_rgb[1280 * 960 * 4];
-char image_chache2_rgb[1280 * 960 * 4];
-
-Sensore_viewer::~Sensore_viewer()
+sensor_viewer::~sensor_viewer()
 {
-    image_capture_timer_->stop();
+extern bool g_stop_capture_sensor_stream;
+    g_stop_capture_sensor_stream = true;
+
+    QThread::msleep(10);
+    for (int i = 0; i < 4; ++i) {
+        if (image_capture_thread_[i]) {
+            image_capture_thread_[i]->wait(1000);
+             if (image_capture_thread_[i]->isRunning()) {
+                image_capture_thread_[i]->terminate();
+                 image_capture_thread_[i]->deleteLater();
+            }
+        }
+    }
 
     if (pcie_dev_) {
         delete pcie_dev_;
     }
+
+    delete []  image_chache;
+    delete [] image_chache_rgb;
+
     delete ui;
 }
 
 
 
-int Sensore_viewer::start_init_camera()
+int sensor_viewer::start_init_camera()
 {
-    if (pcie_dev_)
-        pcie_dev_->stream_on(NULL, 0);
+    if (pcie_dev_) pcie_dev_->stream_on(NULL, 0);
 }
 
-int Sensore_viewer::get_ch_info()
-{
-    /*int size = 10;
-    pcie_msg_t msg;
-    msg.cmd_id = 0x10000001;
-    memcpy(trans.read_buffer, &msg, sizeof(msg));
-
-    if (trans.c2h_fd) {
-        auto rc = read_to_buffer(C2H_DEVICE, trans.c2h_fd, trans.write_buffer, sizeof(msg), 0x70000000 + 2048);
-        memcpy(&msg, trans.write_buffer, sizeof(msg));
-        if (rc >= 0) {
-        info_label_->setText("dt->:" + QString::number(msg.append_info[0], 16) + "|" + QString::number(msg.append_info[1], 16)
-                + "|" + QString::number(msg.append_info[2], 16) + "|" + QString::number(msg.append_info[3], 16));
-        }
-    }*/
-
-}
-
-
-int Sensore_viewer::read_buffer2image(uchar* image, int size, uint offset)
-{
-    /*int rc, i;
-    int count = COUNT_DEFAULT;
-    volatile unsigned int addr;
-    volatile unsigned int *transfer_done;
-    int var = 0;
-    char *write_allocated = trans.write_buffer;
-    addr = offset;//0xFAEC00;//0x1869B0;//0x13780;
-    int w = 1280;
-    int h = 960;
-    size = w * h * 2;
-
-    static int index = 0;
-    if (0)
-        fprintf(stdout, "host buffer 0x%x = %p\n",
-            size + 4096, trans.write_buffer);
-
+int sensor_viewer::read_buffer2image(uchar* image, int size, uint offset)
+{/*
     auto start = system_clock::now();
     if (trans.c2h_fd) {
         rc = read_to_buffer(C2H_DEVICE, trans.c2h_fd, trans.write_buffer, size, addr);
@@ -148,49 +146,49 @@ int Sensore_viewer::read_buffer2image(uchar* image, int size, uint offset)
         std::cout <<  "花费了"
              << double(duration.count()) * microseconds::period::num / microseconds::period::den
              << "秒 Badnwidth " << size / 1024 / 1024 / (double(duration.count()) * microseconds::period::num / microseconds::period::den) << "MB/s" << endl;
-    }
+    }*/
 
-    //save_file("019_raw" +QString::number(++i_index) + ".raw", trans.write_buffer, 1280*960*2);
-    alg_cv::cvtColor((uchar*)trans.write_buffer, image, w, h, alg_cv::YUV422_YUYV_2_RGB);
-    //yuv422_2_rgb((uchar*)trans.write_buffer, image, w, h);
-    */
     return  0;
 }
 
-void Sensore_viewer::slot_on_sub_ch_image()
+void sensor_viewer::slot_on_sub_ch_image()
 {
-    int w = 1280, h = 960;
-    int size = 1280 * 960 * 2;
-    static int index = 0;
-
-    if (++index > 40) {
-        index = 0;
-        get_ch_info();
-    }
-
-    int ret;
-
-
-    for (int i = 0; i < 4; ++i) {
-        if (pcie_dev_) {
-            ret = pcie_dev_->deque_image(image_chache, size, i);
-            alg_cv::cvtColor((uchar*)image_chache, (uchar*)image_chache_rgb, w, h, alg_cv::YUV422_YUYV_2_RGB);
-        }
-
-        if (!ret) {
-            QImage image(reinterpret_cast<uchar *>(image_chache_rgb), w, h, QImage::Format::Format_RGB888);
-            float img_scale_h = h * ((float)(image_label_[i]->width()) /(float)(w));
-            if (img_scale_h > image_label_[i]->height()) {
-                image = image.scaled(w * image_label_[i]->height() / h, (int)image_label_[i]->height());
-            } else {
-                image = image.scaled(image_label_[i]->width(), h * image_label_[i]->width() / w);
-            }
-
-            image_label_[i]->setPixmap(QPixmap::fromImage(image));
+    if (pcie_dev_) {
+        uint8_t dt[8];
+        if (!pcie_dev_->get_channel_decode_info(dt)) {
+            info_label_->setText("ch_dt:" + QString::number(dt[0], 16) + "|" + QString::number(dt[1], 16)
+                    + "|" + QString::number(dt[2], 16) + "|" + QString::number(dt[3], 16));
         }
     }
-
-    image_capture_timer_->start(20);
+    image_capture_timer_->start(1000);
 }
 
 
+void sensor_viewer::slot_on_recv_ch_meta_data(void* meta_data, int ch_id)
+{
+    if (ch_id > 4 || !meta_data) return;
+
+        image_meta_data_t* data;
+        image_buffer::get_instance()->deque(&data, ch_id);
+        image_meta_data_t *image_meta_data = (image_meta_data_t *)meta_data;
+
+
+        QImage view_image(image_meta_data->rgb_data.data, image_meta_data->image_info.width, image_meta_data->image_info.height, QImage::Format_RGB888);
+        QImage tmp;
+
+        float image_scale_height = (float)image_meta_data->image_info.height * ( (float)image_label_[ch_id]->size().width() / (float)image_meta_data->image_info.width);
+
+        //说明height按照 viewer来
+        if (image_scale_height >= image_label_[ch_id]->size().height()) {
+            tmp = view_image.scaled(QSize(image_meta_data->image_info.width * image_label_[ch_id]->size().height() / image_meta_data->image_info.height,
+                                          image_label_[ch_id]->size().height()));
+        }else { //说明 width 按照viewer来
+            tmp = view_image.scaled(QSize(image_label_[ch_id]->size().width(),
+                                          image_meta_data->image_info.height *  image_label_[ch_id]->size().width()/ image_meta_data->image_info.width));
+        }
+
+
+        //view_image = view_image.scaled(image_Label_->size());
+
+        this->image_label_[ch_id]->setPixmap(QPixmap::fromImage(tmp));
+}

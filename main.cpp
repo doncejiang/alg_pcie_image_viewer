@@ -10,7 +10,7 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    Sensore_viewer w;
+    sensor_viewer w;
 
     w.show();
     return a.exec();

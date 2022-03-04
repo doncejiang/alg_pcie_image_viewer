@@ -4,7 +4,7 @@
 int pcie_reg_get_frm_ptr(uint32_t *base, uint8_t dev_id)
 {
     if (!base || dev_id > 7) return -1;
-    return *(base + (dev_id * 4));
+    return *(base + (dev_id));
 }
 //slv rasie irq 2 host
 int pcie_reg_raise_irq2slv(uint32_t *base)
@@ -15,7 +15,7 @@ int pcie_reg_raise_irq2slv(uint32_t *base)
 //slv clear irq from host
 int pcie_reg_clear_irq_from_slv(uint32_t *base)
 {
-    uint32_t data = *(base + CLEAR_FROM_SLV_IRQ_OFFSET);
+    uint32_t data = *(base + (CLEAR_FROM_SLV_IRQ_OFFSET / 4));
     return data;
 }
 //slv write info 2 host

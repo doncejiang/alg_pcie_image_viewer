@@ -1,5 +1,5 @@
-#ifndef SENSORE_VIEWER_H
-#define SENSORE_VIEWER_H
+#ifndef sensor_viewer_H
+#define sensor_viewer_H
 
 #include <QMainWindow>
 #include <QGridLayout>
@@ -9,7 +9,7 @@
 #include "pcie.h"
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class Sensore_viewer; }
+namespace Ui { class sensor_viewer; }
 QT_END_NAMESPACE
 
 
@@ -28,31 +28,38 @@ QT_END_NAMESPACE
 
 
 
-class Sensore_viewer : public QMainWindow
+class sensor_viewer : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    Sensore_viewer(QWidget *parent = nullptr);
-    ~Sensore_viewer();
+    sensor_viewer(QWidget *parent = nullptr);
+    ~sensor_viewer();
     int read_buffer2image(uchar* image, int size, uint offset);
     int start_init_camera();
-    int get_ch_info();
 
 private:
     QLabel* info_label_;
-    Ui::Sensore_viewer *ui;
+    Ui::sensor_viewer *ui;
     QLabel *image_label_[8] = {nullptr};
     QGridLayout* ui_layout_{nullptr};
-    QThread* image_capture_thread_{nullptr};
-    image_capture_process* image_capture_process_{nullptr};
+    QThread* image_capture_thread_[8]{nullptr};
+    image_capture_proecess* image_capture_process_[8]{nullptr};
     uint64_t addr_table[4][7];
     QTimer* image_capture_timer_{nullptr};
-    pcie_dev* pcie_dev_;
+    pcie_dev* pcie_dev_{nullptr};
+
+    char* image_chache{nullptr};
+    char* image_chache_rgb{nullptr};
 
 private slots:
     void slot_on_sub_ch_image();
+    void slot_on_recv_ch_meta_data(void* meta, int ch);
+
+signals:
+    void signal_on_pub_dev_instance(void* pcie_dev);
+    void signal_on_start_sensor_stream();
 
 
 };
-#endif // SENSORE_VIEWER_H
+#endif // sensor_viewer_H

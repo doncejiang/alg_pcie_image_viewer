@@ -4,6 +4,7 @@
 #include "stdint.h"
 #include "dma_utils.h"
 #include "pcie_reg_driver.h"
+#include <mutex>
 
 #define VDMA_NUM 8
 #define VDMA_RING_FRM_NUM 7
@@ -18,6 +19,9 @@ public:
     int stream_off(uint8_t channel);
     int deque_image(char* image, uint32_t size, uint8_t channel);
     int get_decode_info(char* buffer, size_t size);
+    int wait_image_ready_event(uint8_t channel);
+    int wait_slv_cmd_ready_event();
+    int get_channel_decode_info(uint8_t dt[8]);
 private:
     size_t read(char* buffer, size_t size, size_t off);
     size_t write(char* buffer, size_t size, size_t off);
@@ -27,11 +31,15 @@ private:
     char c2h_dev_name_[64];
     char h2c_dev_name_[64];
     char reg_dev_name_[64];
+    char event_dev_name_[64];
+    char img_event_dev_name_[8][64];
     bool dev_is_open_ = false;
+    std::mutex mutex_;
     uint32_t addr_table_[VDMA_NUM][VDMA_RING_FRM_NUM] = {0};
 private:
     int get_frm_ptr(uint8_t dev_id);
     int raise_irq2slv();
+    int get_pcie_msg(pcie_msg_t& msg);
     int clear_irq_from_slv();
     int write_host_info_reg(uint32_t info[3]);
     int read_slv_info_reg(uint32_t info[3]);

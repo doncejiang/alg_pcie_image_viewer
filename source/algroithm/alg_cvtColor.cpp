@@ -6,7 +6,7 @@ namespace alg_cv {
 #define LIMIT_VAL_HIGH(val, max) (val) > (max) ? (max) : (val)
 #define LIMIT_VAL_LOW(val, min) (val) < (min) ? (min) : (val)
 
-void cvtColor(unsigned char* src, unsigned char* out, int w, int h, color_space_e color_space)
+void ALG_cvtColor(unsigned char* src, unsigned char* out, int w, int h, color_space_e color_space)
 {
     if (!src || !out) {
         return;

@@ -6,7 +6,7 @@ namespace alg_cv {
         YUV422_YUYV_2_RGB = 0,
         YUV422_UYVY_2_RGB = 1,
     };
-    void cvtColor(unsigned char* src, unsigned char* out, int w, int h, color_space_e color_space);
+    void ALG_cvtColor(unsigned char* src, unsigned char* out, int w, int h, color_space_e color_space);
 }
 
 

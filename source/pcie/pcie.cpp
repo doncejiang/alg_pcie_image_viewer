@@ -23,6 +23,8 @@
 #define H2C_DEVICE "/dev/xdma%d_h2c_0"
 #define C2H_DEVICE "/dev/xdma%d_c2h_0"
 #define REG_DEVICE_NAME "/dev/xdma%d_xvc"
+#define USER_EVENT_DEVICE_NAME "/dev/xdma%d_events_8"
+#define IMG_EVENT_DEVICE_NAME "/dev/xdma%d_events_%d"
 
 #define MEM_ALLOC_SIZE (3840 * 2166 * 2)
 
@@ -33,6 +35,10 @@ pcie_dev::pcie_dev(int dev_id)
     sprintf(c2h_dev_name_, C2H_DEVICE, dev_id);
     sprintf(h2c_dev_name_, H2C_DEVICE, dev_id);
     sprintf(reg_dev_name_, REG_DEVICE_NAME, dev_id);
+    sprintf(event_dev_name_, USER_EVENT_DEVICE_NAME, dev_id);
+    for (int i = 0; i < 8; ++i) {
+        sprintf(img_event_dev_name_[i], IMG_EVENT_DEVICE_NAME, dev_id, i);
+    }
 
     for (int i = 0; i < VDMA_NUM; ++i) {
         for (int j = 0; j < VDMA_RING_FRM_NUM; ++j) {
@@ -46,6 +52,31 @@ pcie_dev::~pcie_dev()
     if (dev_is_open_) {
         close_dev();
     }
+}
+
+static int read_event(int fd)
+{
+    int val;
+    //int r = poll()
+    read(fd, &val, 4);
+    return val;
+}
+
+int pcie_dev::wait_slv_cmd_ready_event()
+{
+    if (trans.cmd_event_fd > 0) {
+        pcie_reg_clear_irq_from_slv(trans.map_base_reg);
+        auto ret = read_event(trans.cmd_event_fd);
+        pcie_reg_clear_irq_from_slv(trans.map_base_reg);
+        return ret;
+    }
+    return -1;
+}
+
+int pcie_dev::wait_image_ready_event(uint8_t channel)
+{
+    if (channel > 7 || trans.img_event_fd[channel] < 0) return -1;
+    return read_event(trans.img_event_fd[channel]);
 }
 
 int pcie_dev::open_dev()
@@ -65,6 +96,25 @@ int pcie_dev::open_dev()
             c2h_dev_name_, trans.c2h_fd);
         perror("open device");
         return - 1;
+    }
+
+    trans.cmd_event_fd = open(event_dev_name_, O_RDONLY);
+    if (trans.cmd_event_fd < 0) {
+        fprintf(stderr, "unable to open device %s, %d.\n",
+        event_dev_name_, trans.reg_fd);
+        perror("open event device failed");
+        return -1;
+    }
+
+
+    for (int i = 0; i < 8; ++i) {
+        trans.img_event_fd[i] = open(img_event_dev_name_[i], O_RDONLY);
+        if (trans.img_event_fd[i] < 0) {
+            fprintf(stderr, "unable to open device %s, %d.\n",
+            img_event_dev_name_[i], trans.reg_fd);
+            perror("open event device failed");
+            return -1;
+        }
     }
 
     trans.reg_fd = open(reg_dev_name_, O_RDWR);
@@ -114,6 +164,17 @@ int pcie_dev::close_dev()
     }
     if (trans.h2c_fd) {
         close(trans.h2c_fd);
+    }
+
+    if (trans.cmd_event_fd) {
+        close(trans.cmd_event_fd);
+    }
+
+
+    for (int i = 0; i < 8; ++i) {
+        if (trans.img_event_fd[i]) {
+            close(trans.img_event_fd[i]);
+        }
     }
 
     if (trans.reg_fd) {
@@ -176,10 +237,16 @@ int pcie_dev::get_decode_info(char* buffer, size_t size)
 int pcie_dev::deque_image(char* image, uint32_t size, uint8_t channel)
 {
     if (channel > VDMA_NUM || !image) return -1;
+    static int buff[8];
 
     static uint8_t s_frm7_grey2dec_lut[16] = {0xff, 0, 2, 1,  6, 5, 3, 4, 0xff, 6,  4, 5,  0,  1,  3,  2};
-    auto grey_code = get_frm_ptr(channel);
+    auto grey_code = get_frm_ptr(2 * channel);
     if (grey_code > 15) grey_code = 15;
+    if (grey_code == buff[channel]) {
+        return -1;
+    } else {
+        buff[channel] = grey_code;
+    }
     auto ptr = s_frm7_grey2dec_lut[grey_code];
     if (ptr > 6) ptr = 6;
 
@@ -195,7 +262,7 @@ int pcie_dev::deque_image(char* image, uint32_t size, uint8_t channel)
 size_t pcie_dev::read(char* buffer, size_t size, size_t off)
 {
     uint64_t addr = off;
-
+    //std::lock_guard<std::mutex> lck(mutex_);
     if (trans.c2h_fd) {
         auto rc = read_to_buffer(c2h_dev_name_, trans.c2h_fd, trans.write_buffer, size, addr);
         if (rc < 0) {
@@ -209,6 +276,7 @@ size_t pcie_dev::read(char* buffer, size_t size, size_t off)
 
 size_t pcie_dev::write(char* buffer, size_t size, size_t off)
 {
+    //std::lock_guard<std::mutex> lck(mutex_);
     memcpy(trans.read_buffer, buffer, size);
     if (trans.h2c_fd) {
         int rc = write_from_buffer(H2C_DEVICE, trans.h2c_fd, trans.read_buffer, size, off);
@@ -218,6 +286,30 @@ size_t pcie_dev::write(char* buffer, size_t size, size_t off)
         }
     }
     return 0;
+}
+
+int pcie_dev::get_channel_decode_info(uint8_t dt[8])
+{
+    pcie_msg_t msg;
+    if (get_pcie_msg(msg)) {
+        for (int i = 0; i < 8; ++i) {
+            dt[i] = msg.append_info[i];
+        }
+        return 0;
+    }
+    return -1;
+}
+
+int pcie_dev::get_pcie_msg(pcie_msg_t &msg)
+{
+    if (trans.c2h_fd) {
+        auto rc = read_to_buffer(c2h_dev_name_, trans.c2h_fd, trans.write_buffer, sizeof(msg), PCIE_POTOCOL_MEM_ADDR + PCIE_ACK_MSG_OFFSET);
+        memcpy(&msg, trans.write_buffer, sizeof(msg));
+        if (rc >= 0) {
+            return rc;
+        }
+    }
+    return -1;
 }
 
 int pcie_dev::get_frm_ptr(uint8_t dev_id)

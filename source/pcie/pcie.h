@@ -7,7 +7,7 @@
 #include <mutex>
 
 #define VDMA_NUM 8
-#define VDMA_RING_FRM_NUM 7
+#define VDMA_RING_FRM_NUM 6
 
 class pcie_dev {
 public:

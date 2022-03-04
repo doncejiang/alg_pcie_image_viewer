@@ -28,6 +28,8 @@
 
 #define MEM_ALLOC_SIZE (3840 * 2166 * 2)
 
+#define DEF_IMG_MEM_SIZE (3840 * 2160 * 2)
+
 pcie_dev::pcie_dev(int dev_id)
 {
     this->dev_id_ = dev_id;
@@ -42,7 +44,13 @@ pcie_dev::pcie_dev(int dev_id)
 
     for (int i = 0; i < VDMA_NUM; ++i) {
         for (int j = 0; j < VDMA_RING_FRM_NUM; ++j) {
-            addr_table_[i][j] = i * VDMA_RING_FRM_NUM * (1920 * 1090 * 2) + ((1280 * 2 * 1000) * j) + PCIE_IMAGE_MEM_ADDR;
+            //TODO: auto fit
+            if (i == 5 ||  i == 4) {
+                addr_table_[i][j] = i * VDMA_RING_FRM_NUM * DEF_IMG_MEM_SIZE + ((1920 * 2 * 1320) * j) + PCIE_IMAGE_MEM_ADDR;
+            } else {
+                addr_table_[i][j] = i * VDMA_RING_FRM_NUM * DEF_IMG_MEM_SIZE + ((1280 * 2 * 1000) * j) + PCIE_IMAGE_MEM_ADDR;
+            }
+            printf("addr %x\r\n", addr_table_[i][j]);
         }
     }
 }
@@ -233,13 +241,16 @@ int pcie_dev::get_decode_info(char* buffer, size_t size)
     }
     return -1;
 }
-
+// 0   1   2   3  4  5
+//3    2   6   7  5  4
+//12   13  15  14 10 11
 int pcie_dev::deque_image(char* image, uint32_t size, uint8_t channel)
 {
     if (channel > VDMA_NUM || !image) return -1;
     static int buff[8];
     int grey_code = 0;
-    static uint8_t s_frm7_grey2dec_lut[16] = {0xff, 0, 2, 1,  6, 5, 3, 4, 0xff, 6,  4, 5,  0,  1,  3,  2};
+    //static uint8_t s_frm7_grey2dec_lut[16] = {0xff, 0, 2, 1,  6, 5, 3, 4, 0xff, 6,  4, 5,  0,  1,  3,  2};
+    static uint8_t s_frm6_grey2dec_lut[16] = {0xff, 0xff, 1, 0,  5, 4, 2, 3, 0xff, 0xff,  4, 5,  0,  1,  3,  2};
     grey_code = get_frm_ptr(channel);
     if (grey_code > 15) grey_code = 15;
     if (grey_code == buff[channel]) {
@@ -247,11 +258,11 @@ int pcie_dev::deque_image(char* image, uint32_t size, uint8_t channel)
     } else {
         buff[channel] = grey_code;
     }
-    auto ptr = s_frm7_grey2dec_lut[grey_code];
-    if (ptr > 6) ptr = 6;
+    auto ptr = s_frm6_grey2dec_lut[grey_code];
+    if (ptr > (VDMA_RING_FRM_NUM - 1)) ptr = (VDMA_RING_FRM_NUM - 1);
 
     if (ptr == 0){
-        ptr = 6;
+        ptr = (VDMA_RING_FRM_NUM - 1);
     } else {
         --ptr;
     }

@@ -47,8 +47,14 @@ void image_capture_proecess::slot_on_start_sensor_stream()
         //pcie_dev_->wait_image_ready_event(ch_id_);
         if (pcie_dev_) {
             image_buffer::get_instance()->enque(&meta_data_, ch_id_);
-            meta_data_->image_info.width = get_app_cfg_info()->width;
-            meta_data_->image_info.height = get_app_cfg_info()->height;
+            //TODO: auto fit
+            if (ch_id_ == 4 || ch_id_ == 5) {
+                meta_data_->image_info.width = 1920;
+                meta_data_->image_info.height = 1280;
+            } else {
+                meta_data_->image_info.width = get_app_cfg_info()->width;
+                meta_data_->image_info.height = get_app_cfg_info()->height;
+            }
             mutex.lock();
             int ret = pcie_dev_->deque_image((char *)meta_data_->raw_data.data,
                                              meta_data_->image_info.width * meta_data_->image_info.height * 2, ch_id_);

@@ -44,12 +44,13 @@ pcie_dev::pcie_dev(int dev_id)
 
     for (int i = 0; i < VDMA_NUM; ++i) {
         for (int j = 0; j < VDMA_RING_FRM_NUM; ++j) {
-            //TODO: auto fit
-            if (i == 5 ||  i == 4) {
-                addr_table_[i][j] = i * VDMA_RING_FRM_NUM * DEF_IMG_MEM_SIZE + ((1920 * 2 * 1320) * j) + PCIE_IMAGE_MEM_ADDR;
-            } else {
-                addr_table_[i][j] = i * VDMA_RING_FRM_NUM * DEF_IMG_MEM_SIZE + ((1280 * 2 * 1000) * j) + PCIE_IMAGE_MEM_ADDR;
-            }
+            addr_table_[i][j] = i * VDMA_RING_FRM_NUM * DEF_IMG_MEM_SIZE + (DEF_IMG_MEM_SIZE * j) + PCIE_IMAGE_MEM_ADDR;
+            ////TODO: auto fit
+            //if (i == 5 ||  i == 4) {
+            //    addr_table_[i][j] = i * VDMA_RING_FRM_NUM * DEF_IMG_MEM_SIZE + ((1920 * 2 * 1320) * j) + PCIE_IMAGE_MEM_ADDR;
+            //} else {
+            //    addr_table_[i][j] = i * VDMA_RING_FRM_NUM * DEF_IMG_MEM_SIZE + ((1280 * 2 * 1000) * j) + PCIE_IMAGE_MEM_ADDR;
+            //}
             printf("addr %x\r\n", addr_table_[i][j]);
         }
     }

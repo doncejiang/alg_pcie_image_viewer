@@ -55,14 +55,12 @@ sensor_viewer::sensor_viewer(QWidget *parent)
     QWidget* w = new QWidget;
 
     statusBar()->addWidget(info_label_);
-    ui_layout_->addWidget(image_label_[0], 0, 0, 1, 1);
-    ui_layout_->addWidget(image_label_[1], 0, 1, 1, 1);
-    ui_layout_->addWidget(image_label_[2], 0, 2, 1, 1);
-    ui_layout_->addWidget(image_label_[3], 0, 3, 1, 1);
-    ui_layout_->addWidget(image_label_[4], 1, 0, 1, 1);
-    ui_layout_->addWidget(image_label_[5], 1, 1, 1, 1);
-    ui_layout_->addWidget(image_label_[6], 1, 2, 1, 1);
-    ui_layout_->addWidget(image_label_[7], 1, 3, 1, 1);
+    for (int i = 0; i < 8; ++i) {
+        QLabel* label = new QLabel("Channel: " + QString::number(i));
+        label->setMaximumHeight(100);
+        ui_layout_->addWidget(label,  (i / 4) * 2, i % 4, 1, 1);
+        ui_layout_->addWidget(image_label_[i],  (i / 4) * 2 + 1, i % 4, 1, 1);
+    }
 
     w->setLayout(ui_layout_);
 
@@ -160,8 +158,11 @@ void sensor_viewer::slot_on_sub_ch_image()
     if (pcie_dev_) {
         uint8_t dt[8];
         if (!pcie_dev_->get_channel_decode_info(dt)) {
-            info_label_->setText("ch_dt:" + QString::number(dt[0], 16) + "|" + QString::number(dt[1], 16)
-                    + "|" + QString::number(dt[2], 16) + "|" + QString::number(dt[3], 16));
+            QString str = "ch_dt:";
+            for (int i = 0; i < 8; ++i) {
+                str += QString::number(dt[i], 16) + "|";
+            }
+            info_label_->setText(str);
         }
     }
     image_capture_timer_->start(1000);

@@ -42,6 +42,7 @@ private:
     QLabel* info_label_;
     Ui::sensor_viewer *ui;
     QLabel *image_label_[8] = {nullptr};
+    QLabel* ch_info_label[8] = {nullptr};
     QGridLayout* ui_layout_{nullptr};
     QThread* image_capture_thread_[8]{nullptr};
     image_capture_proecess* image_capture_process_[8]{nullptr};

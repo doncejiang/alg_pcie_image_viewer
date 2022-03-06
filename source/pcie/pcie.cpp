@@ -20,9 +20,9 @@
 #define MAP_SIZE (32*1024UL)
 #define MAP_MASK (MAP_SIZE - 1)
 
-#define H2C_DEVICE "/dev/xdma%d_h2c_0"
-#define C2H_DEVICE "/dev/xdma%d_c2h_0"
-#define REG_DEVICE_NAME "/dev/xdma%d_xvc"
+#define H2C_DEVICE "/dev/xdma%d_h2c_1"
+#define C2H_DEVICE "/dev/xdma%d_c2h_1"
+#define REG_DEVICE_NAME "/dev/xdma%d_user"
 #define USER_EVENT_DEVICE_NAME "/dev/xdma%d_events_8"
 #define IMG_EVENT_DEVICE_NAME "/dev/xdma%d_events_%d"
 

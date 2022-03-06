@@ -56,9 +56,9 @@ sensor_viewer::sensor_viewer(QWidget *parent)
 
     statusBar()->addWidget(info_label_);
     for (int i = 0; i < 8; ++i) {
-        QLabel* label = new QLabel("Channel: " + QString::number(i));
-        label->setMaximumHeight(100);
-        ui_layout_->addWidget(label,  (i / 4) * 2, i % 4, 1, 1);
+        ch_info_label[i] = new QLabel("Channel: " + QString::number(i));
+        ch_info_label[i] ->setMaximumHeight(100);
+        ui_layout_->addWidget(ch_info_label[i] ,  (i / 4) * 2, i % 4, 1, 1);
         ui_layout_->addWidget(image_label_[i],  (i / 4) * 2 + 1, i % 4, 1, 1);
     }
 
@@ -194,6 +194,8 @@ void sensor_viewer::slot_on_recv_ch_meta_data(void* meta_data, int ch_id)
 
 
         //view_image = view_image.scaled(image_Label_->size());
+
+        ch_info_label[ch_id]->setText("Channel" + QString::number(ch_id) + "_FPS: " + QString::number(image_meta_data->image_info.fps));
 
         this->image_label_[ch_id]->setPixmap(QPixmap::fromImage(tmp));
 }

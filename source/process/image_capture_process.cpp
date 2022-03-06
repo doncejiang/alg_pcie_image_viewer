@@ -32,6 +32,7 @@ void image_capture_proecess::slot_on_start_sensor_stream()
     struct timeval tv;
     struct timeval last_tv;
     gettimeofday(&tv, NULL);
+    int fps = 0;
 
     while (!g_stop_capture_sensor_stream) {
         //capture
@@ -43,7 +44,7 @@ void image_capture_proecess::slot_on_start_sensor_stream()
         //    QThread::msleep(25); // 25fps
         //}
 
-        QThread::msleep(25);
+        QThread::msleep(10);
         //pcie_dev_->wait_image_ready_event(ch_id_);
         if (pcie_dev_) {
             image_buffer::get_instance()->enque(&meta_data_, ch_id_);
@@ -69,10 +70,12 @@ void image_capture_proecess::slot_on_start_sensor_stream()
                 ++frame_cnt;
                 gettimeofday(&tv, NULL);
                 if ((get_ms_tick(tv) - get_ms_tick(last_tv)) >= 1000) {
-                    printf("\r\nch %d fps %d \r\n", ch_id_, frame_cnt * 1000 / (get_ms_tick(tv) - get_ms_tick(last_tv)));
+                    fps = meta_data_->image_info.fps = frame_cnt * 1000 / (get_ms_tick(tv) - get_ms_tick(last_tv));
+                    printf("\r\nch %d fps %03f \r\n", ch_id_, meta_data_->image_info.fps);
                     last_tv = tv;
                     frame_cnt = 0;
                 }
+                if (meta_data_->image_info.fps < 1) meta_data_->image_info.fps = fps;
                 emit signal_on_publish_capture_image(meta_data_, ch_id_);
             } else {
                 ++err_cnt_;

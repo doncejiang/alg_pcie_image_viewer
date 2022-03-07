@@ -13,7 +13,7 @@ typedef struct {
     uint8_t  vc_id;
     uint16_t width;
     uint16_t height;
-    float    fps;
+    int    fps;
     uint32_t rsvd;
 } image_info_t;
 

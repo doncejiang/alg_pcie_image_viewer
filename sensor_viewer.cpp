@@ -102,7 +102,6 @@ sensor_viewer::~sensor_viewer()
 extern bool g_stop_capture_sensor_stream;
     g_stop_capture_sensor_stream = true;
 
-    QThread::msleep(10);
     for (int i = 0; i < 8; ++i) {
         if (image_capture_thread_[i]) {
             image_capture_thread_[i]->wait(1000);

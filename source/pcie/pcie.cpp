@@ -16,12 +16,13 @@
 #include <unistd.h>
 #include "stdlib.h"
 #include "string.h"
+#include <poll.h>
 
 #define MAP_SIZE (32*1024UL)
 #define MAP_MASK (MAP_SIZE - 1)
 
-#define H2C_DEVICE "/dev/xdma%d_h2c_1"
-#define C2H_DEVICE "/dev/xdma%d_c2h_1"
+#define H2C_DEVICE "/dev/xdma%d_h2c_0"
+#define C2H_DEVICE "/dev/xdma%d_c2h_0"
 #define REG_DEVICE_NAME "/dev/xdma%d_user"
 #define USER_EVENT_DEVICE_NAME "/dev/xdma%d_events_8"
 #define IMG_EVENT_DEVICE_NAME "/dev/xdma%d_events_%d"
@@ -29,6 +30,19 @@
 #define MEM_ALLOC_SIZE (3840 * 2166 * 2)
 
 #define DEF_IMG_MEM_SIZE (3840 * 2160 * 2)
+
+
+static int poll_irq_event(int fd, int time_out = 33)
+{
+    struct pollfd fds[] = {
+          { fd, POLLIN }
+      };
+
+    int val;
+    val = poll(fds, 1, time_out);
+    //val = read(fd, &val, 4);
+    return val;
+}
 
 pcie_dev::pcie_dev(int dev_id)
 {
@@ -45,13 +59,6 @@ pcie_dev::pcie_dev(int dev_id)
     for (int i = 0; i < VDMA_NUM; ++i) {
         for (int j = 0; j < VDMA_RING_FRM_NUM; ++j) {
             addr_table_[i][j] = i * VDMA_RING_FRM_NUM * DEF_IMG_MEM_SIZE + (DEF_IMG_MEM_SIZE * j) + PCIE_IMAGE_MEM_ADDR;
-            ////TODO: auto fit
-            //if (i == 5 ||  i == 4) {
-            //    addr_table_[i][j] = i * VDMA_RING_FRM_NUM * DEF_IMG_MEM_SIZE + ((1920 * 2 * 1320) * j) + PCIE_IMAGE_MEM_ADDR;
-            //} else {
-            //    addr_table_[i][j] = i * VDMA_RING_FRM_NUM * DEF_IMG_MEM_SIZE + ((1280 * 2 * 1000) * j) + PCIE_IMAGE_MEM_ADDR;
-            //}
-            printf("addr %x\r\n", addr_table_[i][j]);
         }
     }
 }
@@ -63,20 +70,16 @@ pcie_dev::~pcie_dev()
     }
 }
 
-static int read_event(int fd)
-{
-    int val;
-    //int r = poll()
-    read(fd, &val, 4);
-    return val;
-}
+
 
 int pcie_dev::wait_slv_cmd_ready_event()
 {
     if (trans.cmd_event_fd > 0) {
-        pcie_reg_clear_irq_from_slv(trans.map_base_reg);
-        auto ret = read_event(trans.cmd_event_fd);
-        pcie_reg_clear_irq_from_slv(trans.map_base_reg);
+        //pcie_reg_clear_irq_from_slv(trans.map_base_reg);
+        auto ret = poll_irq_event(trans.cmd_event_fd);
+        if (ret >= 0) {
+            pcie_reg_clear_irq_from_slv(trans.map_base_reg);
+        }
         return ret;
     }
     return -1;
@@ -85,7 +88,7 @@ int pcie_dev::wait_slv_cmd_ready_event()
 int pcie_dev::wait_image_ready_event(uint8_t channel)
 {
     if (channel > 7 || trans.img_event_fd[channel] < 0) return -1;
-    return read_event(trans.img_event_fd[channel]);
+    return poll_irq_event(trans.img_event_fd[channel]);
 }
 
 int pcie_dev::open_dev()
@@ -262,10 +265,10 @@ int pcie_dev::deque_image(char* image, uint32_t size, uint8_t channel)
     auto ptr = s_frm6_grey2dec_lut[grey_code];
     if (ptr > (VDMA_RING_FRM_NUM - 1)) ptr = (VDMA_RING_FRM_NUM - 1);
 
-    if (ptr == 0){
+    if (ptr == 0) {
         ptr = (VDMA_RING_FRM_NUM - 1);
     } else {
-        --ptr;
+        ptr -= 1;
     }
 
     return read(image, size, addr_table_[channel][ptr]);
@@ -275,14 +278,17 @@ size_t pcie_dev::read(char* buffer, size_t size, size_t off)
 {
     uint64_t addr = off;
     //std::lock_guard<std::mutex> lck(mutex_);
+    mutex_.lock();
     if (trans.c2h_fd) {
         auto rc = read_to_buffer(c2h_dev_name_, trans.c2h_fd, trans.write_buffer, size, addr);
         if (rc < 0) {
             printf("dev %d read to buffer failed size %d rc %d\n", dev_id_, size, rc);
             return -1;
+            mutex_.unlock();
         }
         memcpy(buffer, trans.write_buffer, size);
     }
+    mutex_.unlock();
     return 0;
 }
 

@@ -5,6 +5,7 @@
 #include <QMutex>
 #include <QDateTime>
 #include <sys/time.h>
+#include <math.h>
 
 QMutex mutex;
 bool g_stop_capture_sensor_stream = false;
@@ -32,6 +33,7 @@ void image_capture_proecess::slot_on_start_sensor_stream()
     struct timeval tv;
     struct timeval last_tv;
     gettimeofday(&tv, NULL);
+    bool is_last_error = false;
     int fps = 0;
 
     while (!g_stop_capture_sensor_stream) {
@@ -41,13 +43,17 @@ void image_capture_proecess::slot_on_start_sensor_stream()
         //    auto rc = pcie_dev_->wait_slv_cmd_ready_event();
         //    printf("wait rc %x\r\n", rc);
         //} else {
-        //    QThread::msleep(25); // 25fps
+        //    QThread::msleep(10); // 25fps
         //}
 
         QThread::msleep(10);
-        //pcie_dev_->wait_image_ready_event(ch_id_);
+        //auto rc = pcie_dev_->wait_image_ready_event(ch_id_);
+        //if (rc < 0) {
+        //    printf("ch %d wait event failed %d\r\n", ch_id_, rc);
+        //}
         if (pcie_dev_) {
-            image_buffer::get_instance()->enque(&meta_data_, ch_id_);
+            if (!is_last_error)
+                image_buffer::get_instance()->enque(&meta_data_, ch_id_);
             //TODO: auto fit
             if (ch_id_ == 4 || ch_id_ == 5) {
                 meta_data_->image_info.width = 1920;
@@ -56,28 +62,35 @@ void image_capture_proecess::slot_on_start_sensor_stream()
                 meta_data_->image_info.width = get_app_cfg_info()->width;
                 meta_data_->image_info.height = get_app_cfg_info()->height;
             }
-            mutex.lock();
+            //mutex.lock();
             int ret = pcie_dev_->deque_image((char *)meta_data_->raw_data.data,
                                              meta_data_->image_info.width * meta_data_->image_info.height * 2, ch_id_);
-            mutex.unlock();
+            //mutex.unlock();
 
             alg_cv::ALG_cvtColor((uchar*)meta_data_->raw_data.data, (uchar*)meta_data_->rgb_data.data,
                              meta_data_->image_info.width, meta_data_->image_info.height, alg_cv::YUV422_YUYV_2_RGB);
             meta_data_->image_info.soft_frame_index = ++frame_index_;
             if (ret >= 0)
             {
+                is_last_error = false;
                 err_cnt_ = 0;
                 ++frame_cnt;
                 gettimeofday(&tv, NULL);
                 if ((get_ms_tick(tv) - get_ms_tick(last_tv)) >= 1000) {
-                    fps = meta_data_->image_info.fps = frame_cnt * 1000 / (get_ms_tick(tv) - get_ms_tick(last_tv));
-                    printf("\r\nch %d fps %03f \r\n", ch_id_, meta_data_->image_info.fps);
+                    fps = (frame_cnt * 10000) / (get_ms_tick(tv) - get_ms_tick(last_tv));
+                    auto tmp = fps % 10;
+                    if (tmp > 5) fps = fps / 10 + 1;
+                    else fps = fps / 10;
+
+                    meta_data_->image_info.fps = fps;
+                    printf("ch %d-> %d fps\r\n", ch_id_, meta_data_->image_info.fps);
                     last_tv = tv;
                     frame_cnt = 0;
                 }
-                if (meta_data_->image_info.fps < 1) meta_data_->image_info.fps = fps;
+                if (meta_data_->image_info.fps < 5) meta_data_->image_info.fps = fps;
                 emit signal_on_publish_capture_image(meta_data_, ch_id_);
             } else {
+                is_last_error = true;
                 ++err_cnt_;
             }
             if (err_cnt_ > 500) {

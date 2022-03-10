@@ -7,7 +7,6 @@
 #include <sys/time.h>
 #include <math.h>
 
-QMutex mutex;
 bool g_stop_capture_sensor_stream = false;
 
 image_capture_proecess::image_capture_proecess(int ch_id, QObject *parent) : QObject(parent)
@@ -37,15 +36,6 @@ void image_capture_proecess::slot_on_start_sensor_stream()
     int fps = 0;
 
     while (!g_stop_capture_sensor_stream) {
-        //capture
-        //wait signal, tmp use sleep
-        //if (ch_id_ == 0) {
-        //    auto rc = pcie_dev_->wait_slv_cmd_ready_event();
-        //    printf("wait rc %x\r\n", rc);
-        //} else {
-        //    QThread::msleep(10); // 25fps
-        //}
-
         QThread::msleep(10);
         //auto rc = pcie_dev_->wait_image_ready_event(ch_id_);
         //if (rc < 0) {

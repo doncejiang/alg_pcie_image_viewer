@@ -57,14 +57,11 @@ sensor_viewer::sensor_viewer(QWidget *parent)
 
     w->setLayout(ui_layout_);
 
-    pcie_dev_ = new pcie_dev(0);
-    auto ret = pcie_dev_->open_dev();
-
     image_capture_timer_ = new QTimer;
     image_capture_timer_->setInterval(50);
     connect(image_capture_timer_, &QTimer::timeout, this, &sensor_viewer::slot_on_sub_ch_image);
     image_capture_timer_->setSingleShot(true);
-    image_capture_timer_->start(10);
+
 
     image_chache = new char[INPUT_WIDTH_DEFAULT * INPUT_HEIGHT_DEFAULT * 2];
     image_chache_rgb = new char[INPUT_WIDTH_DEFAULT * INPUT_HEIGHT_DEFAULT * 3];
@@ -80,13 +77,19 @@ sensor_viewer::sensor_viewer(QWidget *parent)
         connect(image_capture_process_[i], &image_capture_proecess::signal_on_publish_capture_image, this, &sensor_viewer::slot_on_recv_ch_meta_data);
     }
 
+    pcie_dev_ = new pcie_dev(0);
+    auto ret = pcie_dev_->open_dev();
 
-    //start_init_camera();
-    emit signal_on_pub_dev_instance(pcie_dev_);
+    if (ret == 0) {
+        image_capture_timer_->start(10);
 
-    QThread::msleep(500);
+        //start_init_camera();
+        emit signal_on_pub_dev_instance(pcie_dev_);
 
-    emit signal_on_start_sensor_stream();
+        QThread::msleep(500);
+
+        emit signal_on_start_sensor_stream();
+    }
     setCentralWidget(w);
 }
 
@@ -97,7 +100,7 @@ extern bool g_stop_capture_sensor_stream;
 
     for (int i = 0; i < 8; ++i) {
         if (image_capture_thread_[i]) {
-            image_capture_thread_[i]->wait(1000);
+            image_capture_thread_[i]->wait(500);
              if (image_capture_thread_[i]->isRunning()) {
                 image_capture_thread_[i]->terminate();
                  image_capture_thread_[i]->deleteLater();

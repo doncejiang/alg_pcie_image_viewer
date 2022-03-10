@@ -65,11 +65,11 @@ typedef struct {
     uint8_t  rsvd[2];
 } pcie_ack_msg_t;
 
-int pcie_reg_get_frm_ptr(uint32_t *base, uint8_t dev_id);
+int pcie_reg_get_frm_ptr(struct pcie_trans *trans, uint8_t dev_id);
 //slv rasie irq 2 host
-int pcie_reg_raise_irq2slv(uint32_t *base);
+int pcie_reg_raise_irq2slv(struct pcie_trans *trans);
 //slv clear irq from host
-int pcie_reg_clear_irq_from_slv(uint32_t *base);
+int pcie_reg_clear_irq_from_slv(struct pcie_trans *trans);
 //slv write info 2 host
 int pcie_reg_write_host_info(uint32_t *base, uint32_t info[3]);
 //slv read info from host

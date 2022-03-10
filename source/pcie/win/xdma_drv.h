@@ -18,24 +18,15 @@ struct pcie_trans {
     HANDLE img_event_device[8]{nullptr};
     HANDLE cmd_event_device{nullptr};
     char* read_img_buffer[VDMA_NUM]{nullptr};
-    char* write_dev_buffer[VDMA_NUM]{nullptr};
-    char* read_dev_buffer[VDMA_NUM]{nullptr};
+    char* write_dev_buffer{nullptr};
+    char* read_dev_buffer{nullptr};
 };
 
-void put_pic_to_sys_memory(char *path);
-int pcie_init();
-void pcie_deinit();
-unsigned int h2c_transfer(unsigned int size);
-unsigned int c2h_transfer(unsigned int size);
-int wait_for_s2mm_intr();
-int wait_for_mm2s_intr();
-int disp_init(int *width,int *height,char *pic_name);
-void disp_deinit();
-void disp_start();
-void disp_reset();
-int pcie_read_frame(unsigned char *buffer);
-void set_saturation(unsigned char satu);
 
+int xdma_read_device(HANDLE device, long address, DWORD size, BYTE* buffer);
+int xdma_open_device(struct pcie_trans* trans, int dev_id);
+int xdma_write_device(HANDLE device, long address, DWORD size, BYTE* buffer);
+int xdma_close_device(struct pcie_trans* trans, int dev_id);
 
 #ifdef __cplusplus
 }

@@ -92,7 +92,7 @@ void image_capture_proecess::slot_on_start_sensor_stream()
                 is_last_error = true;
                 ++err_cnt_;
             }
-            if (err_cnt_ > 500) {
+            if (err_cnt_ > 20) {
                  printf("ch %d quit beacase error\r\n", ch_id_);
                  break;
             }

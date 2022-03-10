@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include "stdlib.h"
 #include "string.h"
+#include <xdma_drv.h>
 
 
 #define MAP_SIZE (32*1024UL)
@@ -22,26 +23,9 @@
 static int poll_irq_event(HANDLE device, int time_out = 33)
 {
     int val = 0;
+    xdma_read_device(device, 0, 4, (BYTE*)&val);
     return val;
 }
-
-static void* posix_memalign(void** buffer, size_t size, size_t alignment) {
-
-    if(size == 0) {
-        size = 4096;
-    }
-
-    if (alignment == 0) {
-        SYSTEM_INFO sys_info;
-        GetSystemInfo(&sys_info);
-        alignment = sys_info.dwPageSize;
-    }
-
-    *buffer =  (BYTE*)_aligned_malloc(size, alignment);
-    return *buffer;
-}
-
-
 
 pcie_dev::pcie_dev(int dev_id)
 {
@@ -92,78 +76,12 @@ int pcie_dev::wait_image_ready_event(uint8_t channel)
 int pcie_dev::open_dev()
 {
     printf("open dev%d start open\r\n", dev_id_);
-
-    char device_base_path[MAX_PATH + 1] = "";
-    wchar_t device_path_w[MAX_PATH + 1] ;
-
-    /*trans.h2c_fd = open(h2c_dev_name_, O_RDWR);
-    if (trans.h2c_fd < 0) {
-        fprintf(stderr, "unable to open device %s, %d.\n",
-            h2c_dev_name_, trans.h2c_fd);
-        perror("open device");
+    auto rc = xdma_open_device(&trans, 0);
+    if (rc < 0) {
+        printf("open dev%d failed\r\n", dev_id_);
         return -1;
     }
 
-    trans.c2h_fd = open(c2h_dev_name_, O_RDWR);
-    if (trans.c2h_fd < 0) {
-        fprintf(stderr, "unable to open device %s, %d.\n",
-            c2h_dev_name_, trans.c2h_fd);
-        perror("open device");
-        return - 1;
-    }
-
-    trans.cmd_event_fd = open(event_dev_name_, O_RDONLY);
-    if (trans.cmd_event_fd < 0) {
-        fprintf(stderr, "unable to open device %s, %d.\n",
-        event_dev_name_, trans.reg_fd);
-        perror("open event device failed");
-        return -1;
-    }
-
-
-    for (int i = 0; i < 8; ++i) {
-        trans.img_event_fd[i] = open(img_event_dev_name_[i], O_RDONLY);
-        if (trans.img_event_fd[i] < 0) {
-            fprintf(stderr, "unable to open device %s, %d.\n",
-            img_event_dev_name_[i], trans.reg_fd);
-            perror("open event device failed");
-            return -1;
-        }
-    }
-
-    trans.reg_fd = open(reg_dev_name_, O_RDWR);
-    if (trans.reg_fd < 0) {
-        fprintf(stderr, "unable to open device %s, %d.\n",
-        reg_dev_name_, trans.reg_fd);
-        perror("open reg device failed");
-        return -1;
-    }
-
-    trans.map_base = mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, trans.reg_fd, 0);
-    if (trans.map_base == (void *)-1) {
-        printf("error unmap\n");
-        printf("Memory mapped at address %p.\n", trans.map_base);
-        fflush(stdout);
-    }
-
-    trans.map_base_reg = (uint32_t*)trans.map_base;
-
-    char *read_allocated = nullptr;
-    char *write_allocated = nullptr;
-    constexpr size_t alloc_size = MEM_ALLOC_SIZE;
-
-    posix_memalign((void **)&read_allocated, 4096 , alloc_size + 4096);
-    if (!read_allocated) {
-        fprintf(stderr, "OOM %u.\n", alloc_size + 4096);
-    }
-
-    trans.read_buffer = read_allocated;
-    posix_memalign((void **)&write_allocated, 4096 , alloc_size + 4096);
-    if (!write_allocated) {
-        fprintf(stderr, "OOM %u.\n", alloc_size + 4096);
-    }
-
-    trans.write_buffer = write_allocated;*/
 
     dev_is_open_ = true;
     printf("open dev%d success\r\n", dev_id_);
@@ -172,39 +90,7 @@ int pcie_dev::open_dev()
 
 int pcie_dev::close_dev()
 {
-    //if (trans.h2c_fd) {
-    //    close(trans.h2c_fd);
-    //}
-    //if (trans.h2c_fd) {
-    //    close(trans.h2c_fd);
-    //}
-    //
-    //if (trans.cmd_event_fd) {
-    //    close(trans.cmd_event_fd);
-    //}
-    //
-    //
-    //for (int i = 0; i < 8; ++i) {
-    //    if (trans.img_event_fd[i]) {
-    //        close(trans.img_event_fd[i]);
-    //    }
-    //}
-    //
-    //if (trans.reg_fd) {
-    //    if (munmap(trans.map_base, MAP_SIZE) == -1)
-    //        printf("error unmap\n");
-    //    close(trans.reg_fd);
-    //}
-    //
-    //if (trans.read_buffer ) {
-    //    free(trans.read_buffer);
-    //}
-    //
-    //if (trans.write_buffer ) {
-    //    free(trans.write_buffer);
-    //}
-    //
-    //dev_is_open_ = false;
+    xdma_close_device(&trans, 0);
     return 0;
 }
 
@@ -240,11 +126,12 @@ int pcie_dev::get_decode_info(char* buffer, size_t size)
 {
     pcie_msg_t msg;
 
-    /*if (trans.c2h_fd) {
-        auto rc = read_to_buffer(c2h_dev_name_, trans.c2h_fd, trans.write_buffer, sizeof(msg), PCIE_POTOCOL_MEM_ADDR + 2048);
-        memcpy(&msg, trans.write_buffer, sizeof(msg));
+    if (trans.c2h0_device) {
+        auto rc = xdma_read_device(trans.c2h0_device, PCIE_POTOCOL_MEM_ADDR + 2048, sizeof(msg), (BYTE *)trans.read_dev_buffer);
+                //read_to_buffer(c2h_dev_name_, trans.c2h_fd, trans.write_buffer, sizeof(msg), PCIE_POTOCOL_MEM_ADDR + 2048);
+        memcpy(&msg, trans.read_dev_buffer, sizeof(msg));
         return rc;
-    }*/
+    }
     return -1;
 }
 // 0   1   2   3  4  5
@@ -281,15 +168,16 @@ size_t pcie_dev::read(char* buffer, size_t size, size_t off)
     uint64_t addr = off;
     //std::lock_guard<std::mutex> lck(mutex_);
     mutex_.lock();
-    /*if (trans.c2h_fd) {
-        auto rc = read_to_buffer(c2h_dev_name_, trans.c2h_fd, trans.write_buffer, size, addr);
+    if (trans.c2h0_device) {
+        auto rc = xdma_read_device(trans.c2h0_device, addr, size, (BYTE*)trans.read_img_buffer[0]);
+                                   //read_to_buffer(c2h_dev_name_, trans.c2h_fd, trans.write_buffer, size, addr);
         if (rc < 0) {
             printf("dev %d read to buffer failed size %d rc %d\n", dev_id_, size, rc);
             return -1;
             mutex_.unlock();
         }
-        memcpy(buffer, trans.write_buffer, size);
-    }*/
+        memcpy(buffer, trans.read_img_buffer[0], size);
+    }
     mutex_.unlock();
     return 0;
 }
@@ -297,14 +185,17 @@ size_t pcie_dev::read(char* buffer, size_t size, size_t off)
 size_t pcie_dev::write(char* buffer, size_t size, size_t off)
 {
     //std::lock_guard<std::mutex> lck(mutex_);
-    //memcpy(trans.read_buffer, buffer, size);
-    //if (trans.h2c_fd) {
-    //    int rc = write_from_buffer(H2C_DEVICE, trans.h2c_fd, trans.read_buffer, size, off);
-    //    if (rc < 0) {
-    //        printf("error index %d, read to buffer failed size %d rc %d\n", 1, size, rc);
-    //        return -1;
-    //    }
-    //}
+    mutex_.lock();
+    memcpy(trans.write_dev_buffer, buffer, size);
+    if (trans.h2c0_device) {
+        int rc = xdma_write_device(trans.h2c0_device, off, size, (BYTE*)trans.write_dev_buffer);
+        if (rc < 0) {
+            mutex_.unlock();
+            printf("error index %d, read to buffer failed size %d rc %d\n", 1, size, rc);
+            return -1;
+        }
+    }
+    mutex_.unlock();
     return 0;
 }
 
@@ -334,25 +225,25 @@ int pcie_dev::get_pcie_msg(pcie_msg_t &msg)
 
 int pcie_dev::get_frm_ptr(uint8_t dev_id)
 {
-    //if (trans.map_base_reg) {
-    //    return pcie_reg_get_frm_ptr(trans.map_base_reg, dev_id);
-    //}
+    if (trans.user_device) {
+        return pcie_reg_get_frm_ptr(&trans, dev_id);
+    }
     return -1;
 }
 
 int pcie_dev::raise_irq2slv()
 {
-    //if (trans.map_base_reg) {
-    //    return pcie_reg_raise_irq2slv(trans.map_base_reg);
-    //}
+    if (trans.user_device) {
+        return pcie_reg_raise_irq2slv(&trans);
+    }
     return -1;
 }
 
 int pcie_dev::clear_irq_from_slv()
 {
-    //if (trans.map_base_reg) {
-    //    return pcie_reg_clear_irq_from_slv(trans.map_base_reg);
-    //}
+    if (trans.user_device) {
+        return pcie_reg_clear_irq_from_slv(&trans);
+    }
     return -1;
 }
 

@@ -10,7 +10,7 @@ CONFIG += c++11
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
 
-DEFINES += WIN64
+#DEFINES += WIN64
 
 # You can also make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -24,7 +24,6 @@ SOURCES += \
     source/algroithm/alg_cvtColor.cpp \
     source/base/app_cfg.cpp \
     source/base/image_buffer.cpp \
-    source/pcie/win/xmda_drv.cpp \
     source/process/obj_save_process.cpp
 
 HEADERS += \
@@ -34,16 +33,17 @@ HEADERS += \
     source/base/app_cfg.h \
     source/base/app_config.h \
     source/base/image_buffer.h \
-    source/pcie/win/xdma_drv.h \
     source/process/obj_save_process.h
 
 if(contains(DEFINES, WIN64)) {
     HEADERS += source/pcie/win/xdma_public.h \
             source/pcie/win/pcie.h \
-            source/pcie/win/pcie_reg_driver.h
+            source/pcie/win/pcie_reg_driver.h \
+            source/pcie/win/xdma_drv.h \
 
     SOURCES += source/pcie/win/pcie.cpp \
             source/pcie/win/pcie_reg_driver.cpp \
+            source/pcie/win/xmda_drv.cpp \
 
 } else {
     HEADERS += source/pcie/linux/dma_utils.h \

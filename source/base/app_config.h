@@ -13,7 +13,7 @@ typedef enum {
     STATUS_OK,
     STATUS_ERROR,
 
-} error_status_t;
+} alg_error_status_t;
 
 
 

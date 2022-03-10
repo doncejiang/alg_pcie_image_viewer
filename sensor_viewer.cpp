@@ -2,34 +2,27 @@
 #include "ui_sensor_viewer.h"
 #include <stdio.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <getopt.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <errno.h>
 #include <time.h>
 #include <QThread>
 #include <QImage>
 #include <QTimer>
-#include <dma_utils.h>
 #include <QFile>
 #include <alg_cvtColor.h>
 #include <chrono>
 #include <iostream>
 #include "pcie.h"
-#include <sys/mman.h>
 #include <sys/stat.h>
-#include <sys/time.h>
+
 #include <sys/types.h>
 #include "image_buffer.h"
-#include <unistd.h>
 
 using namespace std;
 using namespace chrono;
@@ -127,6 +120,7 @@ extern bool g_stop_capture_sensor_stream;
 int sensor_viewer::start_init_camera()
 {
     if (pcie_dev_) pcie_dev_->stream_on(NULL, 0);
+    return 0;
 }
 
 int sensor_viewer::read_buffer2image(uchar* image, int size, uint offset)

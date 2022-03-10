@@ -4,7 +4,6 @@
 #include <alg_cvtColor.h>
 #include <QMutex>
 #include <QDateTime>
-#include <sys/time.h>
 #include <math.h>
 
 QMutex mutex;
@@ -32,7 +31,7 @@ void image_capture_proecess::slot_on_start_sensor_stream()
     int frame_cnt = 0;
     struct timeval tv;
     struct timeval last_tv;
-    gettimeofday(&tv, NULL);
+    //gettimeofday(&tv, NULL);
     bool is_last_error = false;
     int fps = 0;
 
@@ -75,18 +74,18 @@ void image_capture_proecess::slot_on_start_sensor_stream()
                 is_last_error = false;
                 err_cnt_ = 0;
                 ++frame_cnt;
-                gettimeofday(&tv, NULL);
-                if ((get_ms_tick(tv) - get_ms_tick(last_tv)) >= 1000) {
-                    fps = (frame_cnt * 10000) / (get_ms_tick(tv) - get_ms_tick(last_tv));
-                    auto tmp = fps % 10;
-                    if (tmp > 5) fps = fps / 10 + 1;
-                    else fps = fps / 10;
-
-                    meta_data_->image_info.fps = fps;
-                    printf("ch %d-> %d fps\r\n", ch_id_, meta_data_->image_info.fps);
-                    last_tv = tv;
-                    frame_cnt = 0;
-                }
+                //gettimeofday(&tv, NULL);
+                //if ((get_ms_tick(tv) - get_ms_tick(last_tv)) >= 1000) {
+                //    fps = (frame_cnt * 10000) / (get_ms_tick(tv) - get_ms_tick(last_tv));
+                //    auto tmp = fps % 10;
+                //    if (tmp > 5) fps = fps / 10 + 1;
+                //    else fps = fps / 10;
+                //
+                //    meta_data_->image_info.fps = fps;
+                //    printf("ch %d-> %d fps\r\n", ch_id_, meta_data_->image_info.fps);
+                //    last_tv = tv;
+                //    frame_cnt = 0;
+                //}
                 if (meta_data_->image_info.fps < 5) meta_data_->image_info.fps = fps;
                 emit signal_on_publish_capture_image(meta_data_, ch_id_);
             } else {

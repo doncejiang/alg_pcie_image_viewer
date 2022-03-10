@@ -39,8 +39,8 @@ class ring_buffer
 public:
     explicit ring_buffer(int item_size, int buffer_depth, item_init init, item_deinit deinit);
     ~ring_buffer();
-    error_status_t deque(void** data);
-    error_status_t enque(void** data);
+    alg_error_status_t deque(void** data);
+    alg_error_status_t enque(void** data);
     bool is_full() {
         return (write_index_ + 1) % buffer_depth_== read_index_;
     }
@@ -66,8 +66,8 @@ public:
     ~image_buffer();
     static image_buffer*  get_instance(int ch_num = MAX_DEV_CH_NUM);
     static void    release();
-    error_status_t deque(image_meta_data_t** image_data, int ch_id);
-    error_status_t enque(image_meta_data_t** image_data, int ch_id);
+    alg_error_status_t deque(image_meta_data_t** image_data, int ch_id);
+    alg_error_status_t enque(image_meta_data_t** image_data, int ch_id);
 private:
     explicit image_buffer(int ch_num = MAX_DEV_CH_NUM);
     ring_buffer*   image_buffer_queue_[MAX_DEV_CH_NUM] = {nullptr};

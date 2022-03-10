@@ -4,7 +4,6 @@
 #include <QMainWindow>
 #include <QGridLayout>
 #include <QLabel>
-#include "dma_utils.h"
 #include "image_capture_process.h"
 #include "pcie.h"
 

@@ -29,7 +29,7 @@ ring_buffer::~ring_buffer()
     }
 }
 
-error_status_t ring_buffer::deque(void** data)
+alg_error_status_t ring_buffer::deque(void** data)
 {
     std::lock_guard<std::mutex> lck(mutex_);
     if (is_empty() || !data) {
@@ -40,7 +40,7 @@ error_status_t ring_buffer::deque(void** data)
     return STATUS_OK;
 }
 
-error_status_t ring_buffer::enque(void** data)
+alg_error_status_t ring_buffer::enque(void** data)
 {
     std::lock_guard<std::mutex> lck(mutex_);
     if (is_full() || !data) {
@@ -140,7 +140,7 @@ void image_buffer::release()
     }
 }
 
-error_status_t image_buffer::deque(image_meta_data_t** image_data, int ch_id)
+alg_error_status_t image_buffer::deque(image_meta_data_t** image_data, int ch_id)
 {
     if (ch_id < ch_num_ && image_buffer_queue_[ch_id]) {
         auto sts = image_buffer_queue_[ch_id]->deque((void **)(image_data));
@@ -148,7 +148,7 @@ error_status_t image_buffer::deque(image_meta_data_t** image_data, int ch_id)
     }
     return STATUS_ERROR;
 }
-error_status_t image_buffer::enque(image_meta_data_t** image_data, int ch_id)
+alg_error_status_t image_buffer::enque(image_meta_data_t** image_data, int ch_id)
 {
     if (ch_id < ch_num_ && image_buffer_queue_[ch_id]) {
         void *data = nullptr;

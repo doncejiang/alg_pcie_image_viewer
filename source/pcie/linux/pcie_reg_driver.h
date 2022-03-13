@@ -2,16 +2,7 @@
 #define PROTOCOL_MEM_CFG_H
 
 #include "stdint.h"
-
-#define PROTOCL_SOF 0x55aa55aa
-
-#define PCIE_POTOCOL_MEM_ADDR (0x40000000)
-#define PCIE_ACK_MSG_OFFSET     2048
-#define PCIE_POTOCOL_MEM_SIZE (4096u)
-
-
-#define PCIE_IMAGE_MEM_ADDR (PCIE_POTOCOL_MEM_ADDR + PCIE_POTOCOL_MEM_SIZE)
-#define PCIE_IMAGE_MEM_SZIE (0x3FF00000 - PCIE_POTOCOL_MEM_SIZE)
+#include "../mem_partion.h"
 
 //read only
 #define VDMA0_FRM_PTR_OFFSET (0)
@@ -37,33 +28,7 @@
 #define CLEAR_FROM_SLV_IRQ_OFFSET (0x70)  //read this reg, irq will clear
 
 #define IMAGE_RING_BUF_NUM 7
-#define IMAGE_BUFF_SIZE (1920*1090*2)
-#define IMAGE_VSIZE_APPEND_SIZE 40
 
-typedef struct {
-    uint32_t sof;
-    uint32_t cmd_index;
-    uint32_t cmd_id;
-    uint32_t cmd_sub_id;
-    uint64_t* msg;
-    uint8_t append_info[16];
-    uint8_t channel;
-    uint8_t isack;
-    uint8_t crc;
-    uint8_t rsvd;
-} pcie_msg_t __attribute__ ((aligned(1)));
-
-typedef struct {
-    uint32_t sof;
-    uint32_t ack_cmd_index;
-    uint32_t ack_cmd_id;
-    uint32_t ack_sub_cmd_id;
-    uint64_t* ack_msg_buffer_addr;
-    uint8_t  append_info[16];
-    uint8_t  crc;
-    uint8_t  channel;
-    uint8_t  rsvd[2];
-} pcie_ack_msg_t __attribute__ ((aligned(1)));
 
 int pcie_reg_get_frm_ptr(uint32_t *base, uint8_t dev_id);
 //slv rasie irq 2 host

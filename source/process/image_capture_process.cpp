@@ -5,6 +5,7 @@
 #include <QMutex>
 #include <QDateTime>
 #include <math.h>
+#include <sys/time.h>
 
 QMutex mutex;
 bool g_stop_capture_sensor_stream = false;
@@ -31,7 +32,7 @@ void image_capture_proecess::slot_on_start_sensor_stream()
     int frame_cnt = 0;
     struct timeval tv;
     struct timeval last_tv;
-    //gettimeofday(&tv, NULL);
+    gettimeofday(&tv, NULL);
     bool is_last_error = false;
     int fps = 0;
 
@@ -45,7 +46,7 @@ void image_capture_proecess::slot_on_start_sensor_stream()
         //    QThread::msleep(10); // 25fps
         //}
 
-        QThread::msleep(10);
+        QThread::msleep(5);
         //auto rc = pcie_dev_->wait_image_ready_event(ch_id_);
         //if (rc < 0) {
         //    printf("ch %d wait event failed %d\r\n", ch_id_, rc);
@@ -54,7 +55,7 @@ void image_capture_proecess::slot_on_start_sensor_stream()
             if (!is_last_error)
                 image_buffer::get_instance()->enque(&meta_data_, ch_id_);
             //TODO: auto fit
-            if (ch_id_ == 4 || ch_id_ == 5) {
+            if (ch_id_ == 4 || ch_id_ == 5 || ch_id_ == 1 || ch_id_ == 0) {
                 meta_data_->image_info.width = 1920;
                 meta_data_->image_info.height = 1280;
             } else {
@@ -74,20 +75,22 @@ void image_capture_proecess::slot_on_start_sensor_stream()
                 is_last_error = false;
                 err_cnt_ = 0;
                 ++frame_cnt;
-                //gettimeofday(&tv, NULL);
-                //if ((get_ms_tick(tv) - get_ms_tick(last_tv)) >= 1000) {
-                //    fps = (frame_cnt * 10000) / (get_ms_tick(tv) - get_ms_tick(last_tv));
-                //    auto tmp = fps % 10;
-                //    if (tmp > 5) fps = fps / 10 + 1;
-                //    else fps = fps / 10;
-                //
-                //    meta_data_->image_info.fps = fps;
-                //    printf("ch %d-> %d fps\r\n", ch_id_, meta_data_->image_info.fps);
-                //    last_tv = tv;
-                //    frame_cnt = 0;
-                //}
+                gettimeofday(&tv, NULL);
+                if ((get_ms_tick(tv) - get_ms_tick(last_tv)) >= 1000) {
+                    fps = (frame_cnt * 10000) / (get_ms_tick(tv) - get_ms_tick(last_tv));
+                    auto tmp = fps % 10;
+                    if (tmp > 5) fps = fps / 10 + 1;
+                    else fps = fps / 10;
+
+                    meta_data_->image_info.fps = fps;
+                    printf("ch %d-> %d fps\r\n", ch_id_, meta_data_->image_info.fps);
+                    last_tv = tv;
+                    frame_cnt = 0;
+                }
                 if (meta_data_->image_info.fps < 5) meta_data_->image_info.fps = fps;
-                emit signal_on_publish_capture_image(meta_data_, ch_id_);
+                if (frame_cnt > 1) {
+                    emit signal_on_publish_capture_image(meta_data_, ch_id_);
+                }
             } else {
                 is_last_error = true;
                 ++err_cnt_;

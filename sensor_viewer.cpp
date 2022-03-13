@@ -148,15 +148,15 @@ int sensor_viewer::read_buffer2image(uchar* image, int size, uint offset)
 
     return  0;
 }
-
+static hw_sts hw_sts_;
 void sensor_viewer::slot_on_sub_ch_image()
 {
     if (pcie_dev_) {
-        uint8_t dt[8];
-        if (!pcie_dev_->get_channel_decode_info(dt)) {
+
+        if (!pcie_dev_->get_channel_decode_info(hw_sts_)) {
             QString str = "ch_dt:";
-            for (int i = 0; i < 8; ++i) {
-                str += QString::number(dt[i], 16) + "|";
+            for (int j = 0; j < 8; ++j) {
+                str += QString::number(hw_sts_.dt[j], 16) + "|";
             }
             info_label_->setText(str);
         }
@@ -188,10 +188,8 @@ void sensor_viewer::slot_on_recv_ch_meta_data(void* meta_data, int ch_id)
                                           image_meta_data->image_info.height *  image_label_[ch_id]->size().width()/ image_meta_data->image_info.width));
         }
 
-
-        //view_image = view_image.scaled(image_Label_->size());
-
-        ch_info_label[ch_id]->setText("Channel" + QString::number(ch_id) + "_FPS: " + QString::number(image_meta_data->image_info.fps));
+        QString str = ("|Vol:" + QString::number(hw_sts_.vol[ch_id], 'g', 6) + "V|Cur:" + QString::number(hw_sts_.cur[ch_id], 'g', 6) + "mA");
+        ch_info_label[ch_id]->setText("Channel" + QString::number(ch_id) + "_FPS: " + QString::number(image_meta_data->image_info.fps) + str);
 
         this->image_label_[ch_id]->setPixmap(QPixmap::fromImage(tmp));
 }

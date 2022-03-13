@@ -33,6 +33,8 @@ HEADERS += \
     source/base/app_cfg.h \
     source/base/app_config.h \
     source/base/image_buffer.h \
+    source/pcie/mem_partion.h \
+    source/pcie/protocol_sdk.h \
     source/process/obj_save_process.h
 
 if(contains(DEFINES, WIN64)) {

@@ -309,22 +309,36 @@ size_t pcie_dev::write(char* buffer, size_t size, size_t off)
     return 0;
 }
 
-int pcie_dev::get_channel_decode_info(uint8_t dt[8])
+int pcie_dev::get_channel_decode_info(hw_sts& sts)
 {
     pcie_msg_t msg;
-    if (get_pcie_msg(msg)) {
+    msg.cmd_id = CMD_HOST_GET_MIPI_POC_INFO;
+    msg.channel = 0xff;
+    memcpy(trans.read_buffer, &msg, sizeof(msg));
+
+    this->write((char *)&msg, sizeof(msg), PCIE_IMAGE_MEM_ADDR);
+    raise_irq2slv();
+
+    auto ret = wait_slv_cmd_ready_event();
+
+    if (ret < 0) return ret;
+
+    pcie_ack_msg_t ack_msg;
+    this->read((char *)&ack_msg, sizeof(ack_msg), PCIE_POTOCOL_HOST_CMD_ACK_MEM_ADDR);
+    if (ack_msg.msg_type == PCIE_ACK_MSG_E) {
         for (int i = 0; i < 8; ++i) {
-            dt[i] = msg.append_info[i];
+            sts.dt[i] = ack_msg.data[32 + i];
+            sts.vol[i] = (float)((uint16_t)(ack_msg.data[2 * i] | ack_msg.data[2 * i + 1] << 8)) / 100.0;
+            sts.cur[i] = (float)((uint16_t)(ack_msg.data[2 * i + 16] | ack_msg.data[2 * i + 1 + 16] << 8)) / 100.0;
         }
-        return 0;
     }
-    return -1;
+    return 0;
 }
 
 int pcie_dev::get_pcie_msg(pcie_msg_t &msg)
 {
     if (trans.c2h_fd) {
-        auto rc = read_to_buffer(c2h_dev_name_, trans.c2h_fd, trans.write_buffer, sizeof(msg), PCIE_POTOCOL_MEM_ADDR + PCIE_ACK_MSG_OFFSET);
+        auto rc = read_to_buffer(c2h_dev_name_, trans.c2h_fd, trans.write_buffer, sizeof(msg), PCIE_POTOCOL_HOST_CMD_ACK_MEM_ADDR);
         memcpy(&msg, trans.write_buffer, sizeof(msg));
         if (rc >= 0) {
             return rc;

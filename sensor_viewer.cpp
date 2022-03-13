@@ -160,8 +160,11 @@ void sensor_viewer::slot_on_sub_ch_image()
             }
             info_label_->setText(str);
         }
+        //uint16_t data = 0;
+        //pcie_dev_->i2c_read(0, 0x90, 0x0d, data, 0x1608);
+        //printf("sdk read %x\r\n", data);
     }
-    image_capture_timer_->start(1000);
+    image_capture_timer_->start(500);
 }
 
 

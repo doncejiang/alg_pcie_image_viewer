@@ -314,9 +314,8 @@ int pcie_dev::get_channel_decode_info(hw_sts& sts)
     pcie_msg_t msg;
     msg.cmd_id = CMD_HOST_GET_MIPI_POC_INFO;
     msg.channel = 0xff;
-    memcpy(trans.read_buffer, &msg, sizeof(msg));
 
-    this->write((char *)&msg, sizeof(msg), PCIE_IMAGE_MEM_ADDR);
+    this->write((char *)&msg, sizeof(msg), PCIE_POTOCOL_MEM_ADDR);
     raise_irq2slv();
 
     auto ret = wait_slv_cmd_ready_event();
@@ -330,6 +329,35 @@ int pcie_dev::get_channel_decode_info(hw_sts& sts)
             sts.dt[i] = ack_msg.data[32 + i];
             sts.vol[i] = (float)((uint16_t)(ack_msg.data[2 * i] | ack_msg.data[2 * i + 1] << 8)) / 100.0;
             sts.cur[i] = (float)((uint16_t)(ack_msg.data[2 * i + 16] | ack_msg.data[2 * i + 1 + 16] << 8)) / 100.0;
+        }
+    }
+    return 0;
+}
+
+int pcie_dev::i2c_read(uint8_t ch_id, uint8_t addr, uint16_t reg, uint16_t& data, uint16_t fmt)
+{
+    pcie_msg_t msg;
+    msg.cmd_id = CMD_HOST_GET_IIC_REG_DATA;
+    msg.channel = ch_id;
+
+    host_iic_ctl_t *iic_ctl = (host_iic_ctl_t *)msg.data;
+    iic_ctl->addr = addr;
+    iic_ctl->reg = reg;
+    iic_ctl->fmt = fmt;
+    this->write((char *)&msg, sizeof(msg), PCIE_POTOCOL_MEM_ADDR);
+    raise_irq2slv();
+
+    auto ret = wait_slv_cmd_ready_event();
+
+    if (ret < 0) return ret;
+
+    pcie_ack_msg_t ack_msg;
+    this->read((char *)&ack_msg, sizeof(ack_msg), PCIE_POTOCOL_HOST_CMD_ACK_MEM_ADDR);
+    if (ack_msg.msg_type == PCIE_ACK_MSG_E) {
+        if (fmt == 0x1608 || fmt == 0x0808) {
+            data = ack_msg.data[0];
+        } else {
+            data = ack_msg.data[0] | (ack_msg.data[1] << 8);
         }
     }
     return 0;

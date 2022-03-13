@@ -41,6 +41,13 @@ enum host_cmd_id {
 };
 
 typedef struct {
+    uint8_t  addr;
+    uint16_t  reg;
+    uint16_t data;
+    uint16_t fmt;
+} host_iic_ctl_t __attribute__ ((aligned(1)));
+
+typedef struct {
 	uint32_t sof;
 	uint32_t cmd_index;
 	uint32_t cmd_id;

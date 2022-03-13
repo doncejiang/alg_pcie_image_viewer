@@ -29,6 +29,7 @@ public:
     int wait_image_ready_event(uint8_t channel);
     int wait_slv_cmd_ready_event();
     int get_channel_decode_info(hw_sts& sts);
+    int i2c_read(uint8_t ch_id, uint8_t addr, uint16_t reg, uint16_t& data, uint16_t fmt);
 private:
     size_t read(char* buffer, size_t size, size_t off);
     size_t write(char* buffer, size_t size, size_t off);

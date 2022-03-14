@@ -81,13 +81,10 @@ sensor_viewer::sensor_viewer(QWidget *parent)
     auto ret = pcie_dev_->open_dev();
 
     if (ret == 0) {
-        image_capture_timer_->start(10);
-
-        //start_init_camera();
+        start_init_camera();
+        QThread::msleep(10000);
         emit signal_on_pub_dev_instance(pcie_dev_);
-
-        QThread::msleep(500);
-
+        image_capture_timer_->start(10);
         emit signal_on_start_sensor_stream();
     }
     setCentralWidget(w);
@@ -159,12 +156,13 @@ void sensor_viewer::slot_on_sub_ch_image()
                 str += QString::number(hw_sts_.dt[j], 16) + "|";
             }
             info_label_->setText(str);
+            //try read iic info
+            uint16_t data;
+           // pcie_dev_->i2c_read(0, 0x90, 0x00, data, 0x1608);
+            printf("data %x\r\n", data);
         }
-        //uint16_t data = 0;
-        //pcie_dev_->i2c_read(0, 0x90, 0x0d, data, 0x1608);
-        //printf("sdk read %x\r\n", data);
     }
-    image_capture_timer_->start(500);
+    image_capture_timer_->start(1000);
 }
 
 

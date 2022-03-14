@@ -27,22 +27,25 @@ public:
     int deque_image(char* image, uint32_t size, uint8_t channel);
     int get_decode_info(char* buffer, size_t size);
     int wait_image_ready_event(uint8_t channel);
-    int wait_slv_cmd_ready_event();
+    int wait_slv_cmd_ready_event(int timeout);
     int get_channel_decode_info(hw_sts& sts);
     int i2c_read(uint8_t ch_id, uint8_t addr, uint16_t reg, uint16_t& data, uint16_t fmt);
 private:
-    size_t read(char* buffer, size_t size, size_t off);
-    size_t write(char* buffer, size_t size, size_t off);
+    size_t pcie_read(int fd, char* buffer, size_t size, size_t off, bool is_cmd = 0);
+    size_t pcie_write(int fd, char* buffer, size_t size, size_t off, bool is_cmd = 0);
 private:
     int dev_id_ = -1;
     pcie_transfer_t trans;
     char c2h_dev_name_[64];
     char h2c_dev_name_[64];
+    char c2h_cmd_dev_name_[64];
+    char h2c_cmd_dev_name_[64];
     char reg_dev_name_[64];
     char event_dev_name_[64];
     char img_event_dev_name_[8][64];
     bool dev_is_open_ = false;
-    std::mutex mutex_;
+    std::mutex img_wr_mutex_;
+    std::mutex cmd_wr_mutex_;
     uint32_t addr_table_[VDMA_NUM][VDMA_RING_FRM_NUM] = {0};
 private:
     int get_frm_ptr(uint8_t dev_id);

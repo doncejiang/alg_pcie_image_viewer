@@ -12,13 +12,17 @@ typedef struct  {
     int infile_fd = 0;
     int h2c_fd = 0;
     int c2h_fd = 0;
+    int h2c_cmd_fd = 0;  //cmd
+    int c2h_cmd_fd = 0; //cmd
     int reg_fd = 0;
     int cmd_event_fd = 0;
     int img_event_fd[8]{0};
     int ofile_fd = 0;
+    char *read_cmd_buffer{nullptr};
+    char *write_cmd_buffer{nullptr};
     void *map_base{nullptr};
-    char *read_buffer{nullptr};
-    char *write_buffer{nullptr};
+    char *read_img_buffer{nullptr}; //img
+    char *write_img_buffer{nullptr}; //img
     char *infname{nullptr};
     char *ofname{nullptr};
     uint32_t* map_base_reg{nullptr};

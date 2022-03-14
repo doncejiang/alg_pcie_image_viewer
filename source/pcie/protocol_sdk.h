@@ -8,6 +8,25 @@
 
 #define ALL_CHANNEL 0xff
 
+
+typedef enum {
+    SONY_ISX021,
+    SONY_ISX019 = 1,
+    SONY_ISX031,
+    SONY_IMX390,
+    SONY_IMX424,
+    SONY_IMX490,
+    SONY_IMX728,
+
+    OV_OX1F10,
+    OV_OX3C,
+    OV_OX8B,
+
+    MAX_SENSOR_NUM,
+
+} IMAGE_SENSOR_E;
+
+
 enum pcie_msg_type {
 	PCIE_CMD_MSG_E,
 	PCIE_ACK_MSG_E,
@@ -23,7 +42,7 @@ enum host_cmd_id {
 	CMD_HOST_HEART_BEAT = 0x10000000,
 	CMD_HOST_SYNC_UTC_CLOCK = 0x10000001,
 
-	CMD_HOST_START_CAMERA_STREAM = 0x10000011,
+    CMD_HOST_START_CAMERA_STREAM = 0x10000011,
 	CMD_HOST_DOWNLOAD_CAMERA_CFG = 0x10000012,
 	CMD_HOST_CLOSE_CAMERA_STREAM = 0x10000013,
 
@@ -62,17 +81,18 @@ typedef struct {
 } pcie_msg_t __attribute__ ((aligned(1)));
 
 typedef struct {
-	uint32_t sof;
-	uint32_t ack_cmd_index;
-	uint32_t ack_cmd_id;
-	uint32_t ack_sub_cmd_id;
-	uint8_t  data[64];
-	uint8_t  data_type; //data is addr info or direct info
-	uint8_t  data_size;
-	uint8_t  channel;   //0xff all channel
-	uint8_t  msg_type;  //is ack
-	uint8_t  crc;
-	uint8_t  rsvd;
+    uint32_t sof;
+    uint32_t ack_cmd_index;
+    uint32_t ack_cmd_id;
+    uint32_t ack_sub_cmd_id;
+    uint32_t err_code;
+    uint8_t  data[64];
+    uint8_t  data_type; //data is addr info or direct info
+    uint8_t  data_size;
+    uint8_t  channel;   //0xff all channel
+    uint8_t  msg_type;  //is ack
+    uint8_t  crc;
+    uint8_t  rsvd;
 } pcie_ack_msg_t __attribute__ ((aligned(1)));
 
 void pcie_sdk_init();

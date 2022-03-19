@@ -5,7 +5,13 @@
 #include <QMutex>
 #include <QDateTime>
 #include <math.h>
-#include <sys/time.h>
+#include <chrono>
+#include <iostream>
+
+
+using namespace std;
+using namespace chrono;
+\
 
 QMutex mutex;
 bool g_stop_capture_sensor_stream = false;
@@ -30,22 +36,12 @@ void image_capture_proecess::slot_on_start_sensor_stream()
     qDebug("ch %d start capture", ch_id_);
     int err_cnt_ = 0;
     int frame_cnt = 0;
-    struct timeval tv;
-    struct timeval last_tv;
-    gettimeofday(&tv, NULL);
+    auto end_tick = system_clock::now();
+    auto start_tick = end_tick;
     bool is_last_error = false;
     int fps = 0;
 
     while (!g_stop_capture_sensor_stream) {
-        //capture
-        //wait signal, tmp use sleep
-        //if (ch_id_ == 0) {
-        //    auto rc = pcie_dev_->wait_slv_cmd_ready_event();
-        //    printf("wait rc %x\r\n", rc);
-        //} else {
-        //    QThread::msleep(10); // 25fps
-        //}
-
         QThread::msleep(5);
         //auto rc = pcie_dev_->wait_image_ready_event(ch_id_);
         //if (rc < 0) {
@@ -75,16 +71,18 @@ void image_capture_proecess::slot_on_start_sensor_stream()
                 is_last_error = false;
                 err_cnt_ = 0;
                 ++frame_cnt;
-                gettimeofday(&tv, NULL);
-                if ((get_ms_tick(tv) - get_ms_tick(last_tv)) >= 1000) {
-                    fps = (frame_cnt * 10000) / (get_ms_tick(tv) - get_ms_tick(last_tv));
+                end_tick = system_clock::now();
+                auto duration = duration_cast<microseconds>(end_tick - start_tick);
+                auto dur_ms = ((duration.count()) * microseconds::period::num / microseconds::period::den);
+                if (dur_ms >= 1000) {
+                    fps = (frame_cnt * 10000) / dur_ms;
                     auto tmp = fps % 10;
                     if (tmp > 5) fps = fps / 10 + 1;
                     else fps = fps / 10;
 
                     meta_data_->image_info.fps = fps;
                     printf("ch %d-> %d fps\r\n", ch_id_, meta_data_->image_info.fps);
-                    last_tv = tv;
+                    start_tick = end_tick;
                     frame_cnt = 0;
                 }
                 if (meta_data_->image_info.fps < 5) meta_data_->image_info.fps = fps;

@@ -199,13 +199,11 @@ size_t pcie_dev::write(char* buffer, size_t size, size_t off)
     return 0;
 }
 
-int pcie_dev::get_channel_decode_info(uint8_t dt[8])
+int pcie_dev::get_channel_decode_info(hw_sts& sts)
 {
     pcie_msg_t msg;
     if (get_pcie_msg(msg)) {
-        for (int i = 0; i < 8; ++i) {
-            dt[i] = msg.append_info[i];
-        }
+
         return 0;
     }
     return -1;

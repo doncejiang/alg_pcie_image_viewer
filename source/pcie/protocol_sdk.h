@@ -8,7 +8,6 @@
 
 #define ALL_CHANNEL 0xff
 
-
 typedef enum {
     SONY_ISX021,
     SONY_ISX019 = 1,

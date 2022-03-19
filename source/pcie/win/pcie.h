@@ -14,6 +14,11 @@
 #include "xdma_drv.h"
 #include <mutex>
 
+struct hw_sts {
+    float vol[8];
+    float cur[8];
+    uint8_t dt[8];
+};
 
 class pcie_dev {
 public:
@@ -27,7 +32,7 @@ public:
     int get_decode_info(char* buffer, size_t size);
     int wait_image_ready_event(uint8_t channel);
     int wait_slv_cmd_ready_event();
-    int get_channel_decode_info(uint8_t dt[8]);
+    int get_channel_decode_info(hw_sts& sts);
 private:
     size_t read(char* buffer, size_t size, size_t off);
     size_t write(char* buffer, size_t size, size_t off);

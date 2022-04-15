@@ -43,8 +43,8 @@ static int poll_irq_event(int fd, int time_out = 33)
       };
 
     int val;
-    //val = poll(fds, 1, time_out);
-    val = read(fd, &val, 4);
+    val = poll(fds, 1, time_out);
+    //val = read(fd, &val, 4);
     return val;
 
 }
@@ -101,7 +101,7 @@ int pcie_dev::wait_image_ready_event(uint8_t channel)
 int pcie_dev::open_dev()
 {
     printf("open dev%d start open\r\n", dev_id_);
-    trans.h2c_fd = open(h2c_dev_name_, O_RDWR);
+    trans.h2c_fd = open(h2c_dev_name_, O_RDWR | O_NONBLOCK);
     if (trans.h2c_fd < 0) {
         fprintf(stderr, "unable to open device %s, %d.\n",
             h2c_dev_name_, trans.h2c_fd);
@@ -109,7 +109,7 @@ int pcie_dev::open_dev()
         return -1;
     }
 
-    trans.c2h_fd = open(c2h_dev_name_, O_RDWR);
+    trans.c2h_fd = open(c2h_dev_name_, O_RDWR | O_NONBLOCK);
     if (trans.c2h_fd < 0) {
         fprintf(stderr, "unable to open device %s, %d.\n",
             c2h_dev_name_, trans.c2h_fd);
@@ -117,7 +117,7 @@ int pcie_dev::open_dev()
         return - 1;
     }
 
-    trans.h2c_cmd_fd = open(h2c_cmd_dev_name_, O_RDWR);
+    trans.h2c_cmd_fd = open(h2c_cmd_dev_name_, O_RDWR | O_NONBLOCK);
     if (trans.h2c_cmd_fd < 0) {
         fprintf(stderr, "unable to open device %s, %d.\n",
             h2c_cmd_dev_name_, trans.h2c_cmd_fd);
@@ -125,7 +125,7 @@ int pcie_dev::open_dev()
         return -1;
     }
 
-    trans.c2h_cmd_fd = open(c2h_cmd_dev_name_, O_RDWR);
+    trans.c2h_cmd_fd = open(c2h_cmd_dev_name_, O_RDWR | O_NONBLOCK);
     if (trans.c2h_cmd_fd < 0) {
         fprintf(stderr, "unable to open device %s, %d.\n",
             c2h_cmd_dev_name_, trans.c2h_cmd_fd);
@@ -133,7 +133,7 @@ int pcie_dev::open_dev()
         return - 1;
     }
 
-    trans.cmd_event_fd = open(event_dev_name_, O_RDONLY);
+    trans.cmd_event_fd = open(event_dev_name_, O_RDONLY | O_NONBLOCK);
     if (trans.cmd_event_fd < 0) {
         fprintf(stderr, "unable to open device %s, %d.\n",
         event_dev_name_, trans.reg_fd);
@@ -143,7 +143,7 @@ int pcie_dev::open_dev()
 
 
     for (int i = 0; i < 8; ++i) {
-        trans.img_event_fd[i] = open(img_event_dev_name_[i], O_RDONLY);
+        trans.img_event_fd[i] = open(img_event_dev_name_[i], O_RDONLY | O_NONBLOCK);
         if (trans.img_event_fd[i] < 0) {
             fprintf(stderr, "unable to open device %s, %d.\n",
             img_event_dev_name_[i], trans.reg_fd);
@@ -152,7 +152,7 @@ int pcie_dev::open_dev()
         }
     }
 
-    trans.reg_fd = open(reg_dev_name_, O_RDWR);
+    trans.reg_fd = open(reg_dev_name_, O_RDWR | O_NONBLOCK);
     if (trans.reg_fd < 0) {
         fprintf(stderr, "unable to open device %s, %d.\n",
         reg_dev_name_, trans.reg_fd);
@@ -215,6 +215,13 @@ int pcie_dev::close_dev()
         close(trans.h2c_fd);
     }
 
+    if (trans.h2c_cmd_fd) {
+        close(trans.h2c_cmd_fd);
+    }
+    if (trans.h2c_cmd_fd) {
+        close(trans.h2c_cmd_fd);
+    }
+
     if (trans.cmd_event_fd) {
         close(trans.cmd_event_fd);
     }
@@ -238,6 +245,14 @@ int pcie_dev::close_dev()
 
     if (trans.write_img_buffer ) {
         free(trans.write_img_buffer);
+    }
+
+    if (trans.read_cmd_buffer ) {
+        free(trans.read_cmd_buffer);
+    }
+
+    if (trans.write_cmd_buffer ) {
+        free(trans.write_cmd_buffer);
     }
 
     dev_is_open_ = false;
@@ -279,7 +294,7 @@ int pcie_dev::deque_image(char* image, uint32_t size, uint8_t channel)
     grey_code = get_frm_ptr(channel);
     if (grey_code > 15) grey_code = 15;
     if (grey_code == buff[channel]) {
-        return -1;
+        //return -1;
     } else {
         buff[channel] = grey_code;
     }
@@ -291,6 +306,7 @@ int pcie_dev::deque_image(char* image, uint32_t size, uint8_t channel)
     } else {
         ptr -= 1;
     }
+    ptr = 0;
     //TODO:image ptr use align malloc to avoid memcpy
     img_wr_mutex_.lock();
     auto rc = pcie_read(trans.c2h_fd, image, size, addr_table_[channel][ptr]);
@@ -307,7 +323,7 @@ size_t pcie_dev::pcie_read(int c2h_fd, char* buffer, size_t size, size_t off, bo
         write_buffer = trans.write_img_buffer;
     else
         write_buffer = trans.write_cmd_buffer;
-    if (trans.c2h_fd) {
+    if (c2h_fd) {
         auto rc = read_to_buffer(c2h_dev_name_, c2h_fd, write_buffer, size, addr);
         if (rc < 0) {
             printf("dev %d read to buffer failed size %d rc %d\n", dev_id_, size, rc);
@@ -328,7 +344,7 @@ size_t pcie_dev::pcie_write(int h2c_fd, char* buffer, size_t size, size_t off, b
     else
         read_buffer = trans.write_cmd_buffer;
     memcpy(read_buffer, buffer, size);
-    if (trans.h2c_fd) {
+    if (h2c_fd) {
         int rc = write_from_buffer(H2C_DEVICE, h2c_fd, read_buffer, size, off);
         if (rc < 0) {
             printf("error index %d, read to buffer failed size %d rc %d\n", 1, size, rc);
@@ -348,9 +364,10 @@ int pcie_dev::get_channel_decode_info(hw_sts& sts)
     this->pcie_write(trans.h2c_cmd_fd, (char *)&msg, sizeof(msg), PCIE_POTOCOL_MEM_ADDR, true);
     raise_irq2slv();
 
-    auto ret = wait_slv_cmd_ready_event(30);
+    auto ret = wait_slv_cmd_ready_event(100);
 
     if (ret < 0) {
+        printf("poll irq error\r\n");
         cmd_wr_mutex_.unlock();
         return ret;
     }
@@ -381,9 +398,10 @@ int pcie_dev::i2c_read(uint8_t ch_id, uint8_t addr, uint16_t reg, uint16_t& data
     this->pcie_write(trans.h2c_cmd_fd, (char *)&msg, sizeof(msg), PCIE_POTOCOL_MEM_ADDR, true);
     raise_irq2slv();
 
-    auto ret = wait_slv_cmd_ready_event(10);
+    auto ret = wait_slv_cmd_ready_event(100);
 
     if (ret < 0) {
+        printf("poll irq error\r\n");
         cmd_wr_mutex_.unlock();
         return ret;
     }
@@ -396,9 +414,9 @@ int pcie_dev::i2c_read(uint8_t ch_id, uint8_t addr, uint16_t reg, uint16_t& data
             data = ack_msg.data[0] | (ack_msg.data[1] << 8);
         }
     }
-    printf("sdk iic read %x, error code %x\r\n", data, ack_msg.err_code);
+    //if (ack)printf("sdk iic read %x, error code %x\r\n", data, ack_msg.err_code);
     cmd_wr_mutex_.unlock();
-    return 0;
+    return ack_msg.err_code;
 }
 
 int pcie_dev::get_pcie_msg(pcie_msg_t &msg)

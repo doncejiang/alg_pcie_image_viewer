@@ -80,9 +80,15 @@ sensor_viewer::sensor_viewer(QWidget *parent)
     pcie_dev_ = new pcie_dev(0);
     auto ret = pcie_dev_->open_dev();
 
+
+    /*while (1) {
+        printf("wait trg\r\n");
+        pcie_dev_->wait_slv_cmd_ready_event(1000);
+        printf("trg recv");
+    }*/
     if (ret == 0) {
-        start_init_camera();
-        QThread::msleep(10000);
+        //start_init_camera();
+        //QThread::msleep(10000);
         emit signal_on_pub_dev_instance(pcie_dev_);
         image_capture_timer_->start(10);
         emit signal_on_start_sensor_stream();
@@ -149,17 +155,23 @@ static hw_sts hw_sts_;
 void sensor_viewer::slot_on_sub_ch_image()
 {
     if (pcie_dev_) {
-
+        //auto start_tick   = system_clock::now();
         if (!pcie_dev_->get_channel_decode_info(hw_sts_)) {
+           // auto end_tick   = system_clock::now();
+            //auto duration = duration_cast<microseconds>(end_tick - start_tick);
+            //printf ("花费了 %f ms", double(duration.count()) * microseconds::period::num / microseconds::period::den);
             QString str = "ch_dt:";
             for (int j = 0; j < 8; ++j) {
                 str += QString::number(hw_sts_.dt[j], 16) + "|";
             }
             info_label_->setText(str);
             //try read iic info
+
+            //
+            printf ("hw_sts_ vol %f %f %f %f\r\n", hw_sts_.vol[0], hw_sts_.vol[1], hw_sts_.vol[2], hw_sts_.vol[3]);
+            printf ("hw_sts_ cur %f %f %f %f\r\n", hw_sts_.cur[0], hw_sts_.cur[1], hw_sts_.cur[2], hw_sts_.cur[3]);
             uint16_t data;
-           // pcie_dev_->i2c_read(0, 0x90, 0x00, data, 0x1608);
-            printf("data %x\r\n", data);
+            //auto ret = pcie_dev_->i2c_read(0, 0x90, 0x00, data, 0x1608);printf("read data %x, code %x\r\n", data, ret);
         }
     }
     image_capture_timer_->start(1000);

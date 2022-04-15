@@ -42,7 +42,7 @@ void image_capture_proecess::slot_on_start_sensor_stream()
     int fps = 0;
 
     while (!g_stop_capture_sensor_stream) {
-        QThread::msleep(5);
+        QThread::msleep(25);
         //auto rc = pcie_dev_->wait_image_ready_event(ch_id_);
         //if (rc < 0) {
         //    printf("ch %d wait event failed %d\r\n", ch_id_, rc);
@@ -51,9 +51,9 @@ void image_capture_proecess::slot_on_start_sensor_stream()
             if (!is_last_error)
                 image_buffer::get_instance()->enque(&meta_data_, ch_id_);
             //TODO: auto fit
-            if (ch_id_ == 4 || ch_id_ == 5 || ch_id_ == 1 || ch_id_ == 0) {
-                meta_data_->image_info.width = 1920;
-                meta_data_->image_info.height = 1280;
+            if (ch_id_ <= 8) {
+                meta_data_->image_info.width = 2592;
+                meta_data_->image_info.height = 1800;
             } else {
                 meta_data_->image_info.width = get_app_cfg_info()->width;
                 meta_data_->image_info.height = get_app_cfg_info()->height;

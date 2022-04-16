@@ -86,12 +86,26 @@ sensor_viewer::sensor_viewer(QWidget *parent)
         pcie_dev_->wait_slv_cmd_ready_event(1000);
         printf("trg recv");
     }*/
+
+
     if (ret == 0) {
         //start_init_camera();
         //QThread::msleep(10000);
-        emit signal_on_pub_dev_instance(pcie_dev_);
-        image_capture_timer_->start(10);
-        emit signal_on_start_sensor_stream();
+
+        //emit signal_on_pub_dev_instance(pcie_dev_);
+        //image_capture_timer_->start(10);
+        //emit signal_on_start_sensor_stream();
+
+        QFile file("/home/donce/project/alg_pcie_card-master/vitis/pcie_sdk_/_ide/bootimage/BOOT.bin");
+
+        if (file.open(QIODevice::ReadOnly)) {
+            char* fw = new char[32 * 1024 * 1024];
+            auto ret = file.read(fw, 1024 * 1024 * 32);
+            printf("read size %d\r\n", ret);
+            pcie_dev_->update_fw(fw, ret);
+        }
+        file.close();
+
     }
     setCentralWidget(w);
 }

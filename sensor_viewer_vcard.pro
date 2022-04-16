@@ -24,6 +24,7 @@ SOURCES += \
     source/algroithm/alg_cvtColor.cpp \
     source/base/app_cfg.cpp \
     source/base/image_buffer.cpp \
+    source/pcie/crc8.c \
     source/process/obj_save_process.cpp
 
 HEADERS += \
@@ -33,6 +34,7 @@ HEADERS += \
     source/base/app_cfg.h \
     source/base/app_config.h \
     source/base/image_buffer.h \
+    source/pcie/crc8.h \
     source/pcie/mem_partion.h \
     source/pcie/protocol_sdk.h \
     source/process/obj_save_process.h

@@ -16,6 +16,7 @@ typedef struct  {
     int c2h_cmd_fd = 0; //cmd
     int reg_fd = 0;
     int cmd_event_fd = 0;
+    int soc_cmd_event_fd = 0;
     int img_event_fd[8]{0};
     int ofile_fd = 0;
     char *read_cmd_buffer{nullptr};

@@ -26,6 +26,7 @@
 #define SOC2HOST_INTR_CTL_OFFSET (19)
 //read only
 #define CLEAR_FROM_SLV_IRQ_OFFSET (0x70)  //read this reg, irq will clear
+#define CLEAR_FROM_SLV2_IRQ_OFFSET (0x74)  //read this reg, irq will clear
 
 #define IMAGE_RING_BUF_NUM 7
 
@@ -34,6 +35,8 @@ int pcie_reg_get_frm_ptr(uint32_t *base, uint8_t dev_id);
 //slv rasie irq 2 host
 int pcie_reg_raise_irq2slv(uint32_t *base);
 //slv clear irq from host
+int pcie_reg_clear_irq2_from_slv(uint32_t *base);
+
 int pcie_reg_clear_irq_from_slv(uint32_t *base);
 //slv write info 2 host
 int pcie_reg_write_host_info(uint32_t *base, uint32_t info[3]);

@@ -82,29 +82,32 @@ sensor_viewer::sensor_viewer(QWidget *parent)
 
 
     /*while (1) {
-        printf("wait trg\r\n");
-        pcie_dev_->wait_slv_cmd_ready_event(1000);
-        printf("trg recv");
+       // printf("wait trg\r\n");
+        //pcie_dev_->wait_slv_cmd_ready_event(50000);
+        pcie_dev_->wait_slv_cmd_event(1000000);
+        printf("trg recv\r\n");
     }*/
 
 
     if (ret == 0) {
-        //start_init_camera();
-        //QThread::msleep(10000);
 
-        //emit signal_on_pub_dev_instance(pcie_dev_);
-        //image_capture_timer_->start(10);
-        //emit signal_on_start_sensor_stream();
+        start_init_camera();
+        printf("stream on..\r\n");
+        emit signal_on_pub_dev_instance(pcie_dev_);
+        image_capture_timer_->start(10);
+        emit signal_on_start_sensor_stream();
 
-        QFile file("/home/donce/project/alg_pcie_card-master/vitis/pcie_sdk_/_ide/bootimage/BOOT.bin");
 
-        if (file.open(QIODevice::ReadOnly)) {
-            char* fw = new char[32 * 1024 * 1024];
-            auto ret = file.read(fw, 1024 * 1024 * 32);
-            printf("read size %d\r\n", ret);
-            pcie_dev_->update_fw(fw, ret);
-        }
-        file.close();
+
+        //QFile file("/home/donce/project/BOOT.bin");
+        //
+        //if (file.open(QIODevice::ReadOnly)) {
+        //    char* fw = new char[32 * 1024 * 1024];
+        //    auto ret = file.read(fw, 1024 * 1024 * 32);
+        //    printf("read size %d\r\n", ret);
+        //    pcie_dev_->update_fw(fw, ret);
+        //}
+        //file.close();
 
     }
     setCentralWidget(w);
@@ -184,8 +187,9 @@ void sensor_viewer::slot_on_sub_ch_image()
             //
             printf ("hw_sts_ vol %f %f %f %f\r\n", hw_sts_.vol[0], hw_sts_.vol[1], hw_sts_.vol[2], hw_sts_.vol[3]);
             printf ("hw_sts_ cur %f %f %f %f\r\n", hw_sts_.cur[0], hw_sts_.cur[1], hw_sts_.cur[2], hw_sts_.cur[3]);
-            uint16_t data;
-            //auto ret = pcie_dev_->i2c_read(0, 0x90, 0x00, data, 0x1608);printf("read data %x, code %x\r\n", data, ret);
+            uint16_t data = 0;
+            auto ret = pcie_dev_->i2c_read(0, 0x90, 0x00, data, 0x1608);
+            printf("read 0x90, reg 00 get reg data %x, code %x\r\n", data, ret);
         }
     }
     image_capture_timer_->start(1000);

@@ -42,18 +42,18 @@ void image_capture_proecess::slot_on_start_sensor_stream()
     int fps = 0;
 
     while (!g_stop_capture_sensor_stream) {
-        QThread::msleep(25);
-        //auto rc = pcie_dev_->wait_image_ready_event(ch_id_);
-        //if (rc < 0) {
-        //    printf("ch %d wait event failed %d\r\n", ch_id_, rc);
-        //}
+        //QThread::msleep(25);
+        auto rc = pcie_dev_->wait_image_ready_event(ch_id_);
+        if (rc < 0) {
+           printf("ch %d wait event failed %d\r\n", ch_id_, rc);
+        }
         if (pcie_dev_) {
             if (!is_last_error)
                 image_buffer::get_instance()->enque(&meta_data_, ch_id_);
             //TODO: auto fit
             if (ch_id_ <= 8) {
-                meta_data_->image_info.width = 2592;
-                meta_data_->image_info.height = 1800;
+                meta_data_->image_info.width = 3840;
+                meta_data_->image_info.height = 2160;
             } else {
                 meta_data_->image_info.width = get_app_cfg_info()->width;
                 meta_data_->image_info.height = get_app_cfg_info()->height;
@@ -74,14 +74,14 @@ void image_capture_proecess::slot_on_start_sensor_stream()
                 end_tick = system_clock::now();
                 auto duration = duration_cast<microseconds>(end_tick - start_tick);
                 auto dur_ms = ((duration.count()) * microseconds::period::num / microseconds::period::den);
-                if (dur_ms >= 1000) {
-                    fps = (frame_cnt * 10000) / dur_ms;
+                if (dur_ms >= 1) {
+                    fps = (frame_cnt * 10) / dur_ms;
                     auto tmp = fps % 10;
                     if (tmp > 5) fps = fps / 10 + 1;
                     else fps = fps / 10;
 
                     meta_data_->image_info.fps = fps;
-                    printf("ch %d-> %d fps\r\n", ch_id_, meta_data_->image_info.fps);
+                    qDebug("ch %d-> %d fps\r\n", ch_id_, meta_data_->image_info.fps);
                     start_tick = end_tick;
                     frame_cnt = 0;
                 }

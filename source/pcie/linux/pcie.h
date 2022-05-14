@@ -8,7 +8,7 @@
 #include <mutex>
 
 #define VDMA_NUM 8
-#define VDMA_RING_FRM_NUM 6
+#define VDMA_RING_FRM_NUM 3
 
 struct hw_sts {
     float vol[8];
@@ -28,6 +28,7 @@ public:
     int get_decode_info(char* buffer, size_t size);
     int wait_image_ready_event(uint8_t channel);
     int wait_slv_cmd_ready_event(int timeout);
+    int wait_slv_cmd_event(int timeout);
     int get_channel_decode_info(hw_sts& sts);
     int update_fw(char* bin, int size);
     int i2c_read(uint8_t ch_id, uint8_t addr, uint16_t reg, uint16_t& data, uint16_t fmt);
@@ -43,6 +44,7 @@ private:
     char h2c_cmd_dev_name_[64];
     char reg_dev_name_[64];
     char event_dev_name_[64];
+    char soc_event_dev_name_[64];
     char img_event_dev_name_[8][64];
     bool dev_is_open_ = false;
     std::mutex img_wr_mutex_;

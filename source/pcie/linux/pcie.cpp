@@ -22,7 +22,7 @@
 #define MAP_SIZE (32*1024UL)
 #define MAP_MASK (MAP_SIZE - 1)
 #define MEM_ALLOC_SIZE (3840 * 2166 * 2)
-#define DEF_IMG_MEM_SIZE (3840 * 2160 * 2)
+#define DEF_IMG_MEM_SIZE (3840 * 2162 * 2)
 #define CMD_MEM_ALLOC_SIZE (1024 * 1024) //1M
 
 
@@ -32,6 +32,7 @@
 #define C2H_CMD_DEVICE "/dev/xdma%d_c2h_1"
 #define REG_DEVICE_NAME "/dev/xdma%d_user"
 #define USER_EVENT_DEVICE_NAME "/dev/xdma%d_events_8"
+#define SOC_EVENT_DEVICE_NAME "/dev/xdma%d_events_9"
 #define IMG_EVENT_DEVICE_NAME "/dev/xdma%d_events_%d"
 
 
@@ -44,8 +45,8 @@ static int poll_irq_event(int fd, int time_out = 33)
       };
 
     int val;
-    val = poll(fds, 1, time_out);
-    //val = read(fd, &val, 4);
+    //val = poll(fds, 1, time_out);
+    val = read(fd, &val, 4);
     return val;
 
 }
@@ -60,6 +61,7 @@ pcie_dev::pcie_dev(int dev_id)
     sprintf(h2c_cmd_dev_name_, H2C_CMD_DEVICE, dev_id);
     sprintf(reg_dev_name_, REG_DEVICE_NAME, dev_id);
     sprintf(event_dev_name_, USER_EVENT_DEVICE_NAME, dev_id);
+    sprintf(soc_event_dev_name_, SOC_EVENT_DEVICE_NAME, dev_id);
     for (int i = 0; i < VDMA_NUM; ++i) {
         sprintf(img_event_dev_name_[i], IMG_EVENT_DEVICE_NAME, dev_id, i);
     }
@@ -86,7 +88,22 @@ int pcie_dev::wait_slv_cmd_ready_event(int timeout)
         //pcie_reg_clear_irq_from_slv(trans.map_base_reg);
         auto ret = poll_irq_event(trans.cmd_event_fd, timeout);
         if (ret >= 0) {
+            //printf("clear");
             pcie_reg_clear_irq_from_slv(trans.map_base_reg);
+        }
+        return ret;
+    }
+    return -1;
+}
+
+
+int pcie_dev::wait_slv_cmd_event(int timeout)
+{
+    if (trans.soc_cmd_event_fd > 0) {
+        //pcie_reg_clear_irq2_from_slv(trans.map_base_reg);
+        auto ret = poll_irq_event(trans.soc_cmd_event_fd, timeout);
+        if (ret >= 0) {
+            pcie_reg_clear_irq2_from_slv(trans.map_base_reg);
         }
         return ret;
     }
@@ -141,6 +158,8 @@ int pcie_dev::open_dev()
         perror("open event device failed");
         return -1;
     }
+
+    trans.soc_cmd_event_fd = open(soc_event_dev_name_, O_RDONLY | O_NONBLOCK);
 
 
     for (int i = 0; i < 8; ++i) {
@@ -267,11 +286,12 @@ int pcie_dev::stream_on(void* cfg, uint8_t channel)
     msg.channel = channel;
     clear_irq_from_slv();
     for (int i = 0; i < 4; ++i) {
-        msg.data[i] = SONY_ISX021;
+        msg.data[i] = OV_OX8B;
     }
     this->pcie_write(trans.h2c_cmd_fd, (char *)&msg, sizeof(msg), PCIE_POTOCOL_MEM_ADDR);
     raise_irq2slv();
-    auto ret = wait_slv_cmd_ready_event(15000);
+    auto ret = wait_slv_cmd_ready_event(10000);
+    printf("stream on off\r\n");
     if (ret < 0) return ret;
 
     return 0;
@@ -291,15 +311,16 @@ int pcie_dev::deque_image(char* image, uint32_t size, uint8_t channel)
     static int buff[8];
     int grey_code = 0;
     //static uint8_t s_frm7_grey2dec_lut[16] = {0xff, 0, 2, 1,  6, 5, 3, 4, 0xff, 6,  4, 5,  0,  1,  3,  2};
-    static uint8_t s_frm6_grey2dec_lut[16] = {0xff, 0xff, 1, 0,  5, 4, 2, 3, 0xff, 0xff,  4, 5,  0,  1,  3,  2};
+    //static uint8_t s_frm6_grey2dec_lut[16] = {0xff, 0xff, 1, 0,  5, 4, 2, 3, 0xff, 0xff,  4, 5,  0,  1,  3,  2};
+    static uint8_t s_frm3_grey2dec_lut[8] = {0xff, 0, 2, 1, 0xff, 2, 0, 1};
     grey_code = get_frm_ptr(channel);
-    if (grey_code > 15) grey_code = 15;
+    if (grey_code > 7) grey_code = 7;
     if (grey_code == buff[channel]) {
         //return -1;
     } else {
         buff[channel] = grey_code;
     }
-    auto ptr = s_frm6_grey2dec_lut[grey_code];
+    auto ptr = s_frm3_grey2dec_lut[grey_code];
     if (ptr > (VDMA_RING_FRM_NUM - 1)) ptr = (VDMA_RING_FRM_NUM - 1);
 
     if (ptr == 0) {
@@ -307,7 +328,6 @@ int pcie_dev::deque_image(char* image, uint32_t size, uint8_t channel)
     } else {
         ptr -= 1;
     }
-    ptr = 0;
     //TODO:image ptr use align malloc to avoid memcpy
     img_wr_mutex_.lock();
     auto rc = pcie_read(trans.c2h_fd, image, size, addr_table_[channel][ptr]);

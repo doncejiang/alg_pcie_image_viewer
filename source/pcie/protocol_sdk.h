@@ -30,6 +30,11 @@ enum {
 struct host_iic_ctl_t {
     uint8_t  addr;
     uint16_t reg;
+    uint16_t data;
+
+
+
+
     uint16_t fmt;
 };
 

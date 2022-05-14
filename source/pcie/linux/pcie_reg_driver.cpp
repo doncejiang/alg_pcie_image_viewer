@@ -18,6 +18,12 @@ int pcie_reg_clear_irq_from_slv(uint32_t *base)
     uint32_t data = *(base + (CLEAR_FROM_SLV_IRQ_OFFSET / 4));
     return data;
 }
+
+int pcie_reg_clear_irq2_from_slv(uint32_t *base)
+{
+    uint32_t data = *(base + (CLEAR_FROM_SLV2_IRQ_OFFSET / 4));
+    return data;
+}
 //slv write info 2 host
 int pcie_reg_write_host_info(uint32_t *base, uint32_t info[3])
 {
